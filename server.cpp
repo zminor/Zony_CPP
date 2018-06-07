@@ -5,7 +5,10 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <unistd.h>
+
 #define ERROR -1
+
 Server::Server():
 				epollfd_(0),
 				listenfd_(0)
@@ -23,6 +26,7 @@ Server::~Server()
 
 int Server::run()
 {
+	epoll_loop();
 	return 0;
 }
 
@@ -66,4 +70,29 @@ int set_noblocking(int fd)
 	if((flags = fcntl(fd, F_GETFL,0))==-1)
 					flags = 0;
 	return fcntl(fd,F_SETFL,flags | O_NONBLOCK);
+}
+
+void Server::epoll_loop()
+{
+	struct sockaddr_in client_addr;
+	socklen_t cli_len = sizeof(sockaddr);
+	int numfds=0;
+	int cli =0;
+	int bufflen = 0;
+	struct epoll_event events[MAXEVENTSIZE];
+
+	char msg[] = "Hello and fk u!\n";
+	int sent;
+	while(true)
+	{
+					printf("start accepting...");
+					if( (cli = accept(listenfd_, (struct sockaddr *)&client_addr,&cli_len))== ERROR)
+					{
+						log_err("accept err");
+						exit(1);
+					}
+					sent = send(cli,msg, strlen(msg),0);
+					printf("%d bytes sent: %s\n", sent, inet_ntoa(client_addr.sin_addr));
+					close(cli);		
+	}
 }

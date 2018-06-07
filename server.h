@@ -13,7 +13,10 @@ class Server
 		virtual ~Server();
 		int run();
 		int init();
+
 	private:
+		void epoll_loop();
+
 		int set_noblocking(int fd);
 		int epollfd_;
 		int listenfd_;
