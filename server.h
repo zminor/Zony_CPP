@@ -1,10 +1,15 @@
 #ifndef __SERVER_H__
 #define __SERVER_H__
 
-#define PORT 3000
-#define TIMEWAIT 100
-#define BUFFLEN 2048
-#define MAXEVENTSIZE 10
+#include "socket.h"
+#include "epoll.h"
+#include "dbg.h"
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 class Server
 {
@@ -15,11 +20,11 @@ class Server
 		int init();
 
 	private:
-		void epoll_loop();
-
-		int set_noblocking(int fd);
-		int epollfd_;
+		int epfd_;
 		int listenfd_;
+
+		Epoll *epoll;
+		Socket * sock;
 
 };
 #endif

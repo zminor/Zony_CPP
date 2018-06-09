@@ -1,18 +1,13 @@
 #include "server.h"
-#include "dbg.h"
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <unistd.h>
 
-#define ERROR -1
 
 Server::Server():
-				epollfd_(0),
-				listenfd_(0)
+				epfd_(0),
+				listenfd_(0),
+				epoll(NULL),
+				sock(NULL)
 {
+
 	if(ERROR == init())
 	{
 		log_err("failed to init server");
@@ -21,57 +16,40 @@ Server::Server():
 }
 Server::~Server()
 {
+				if(epoll != NULL) delete epoll;
+				if(sock != NULL) delete sock;
 	/*if connected */
 }
 
 int Server::run()
 {
-	epoll_loop();
+	epoll->do_epoll(listenfd_);
 	return 0;
 }
 
 int Server::init()
 {
-	listenfd_ = socket(AF_INET,SOCK_STREAM,0);	if(listenfd_ == ERROR)
+	//socket
+	sock = new Socket();
+	listenfd_ = sock->init(); 
+	if(listenfd_ == -1)
 	{
-		log_err("fail init socket");
-		return ERROR;
+		return -1;
 	}
-	log_info("socket init success");
+	//epoll
+	epoll = new Epoll();
+	if(epoll->init(listenfd_) == ERROR)
+	{	
+		log_err("epoll initialization");
+	}
 
-	struct sockaddr_in server_addr;
-	memset(&server_addr,0,sizeof(sockaddr_in));
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	server_addr.sin_port = htons(PORT);
-	/*bind */
-	if(ERROR == bind(listenfd_, (struct sockaddr*)(&server_addr), sizeof(server_addr)))
-	{
-		log_err("fail on bind");
-		return ERROR;
-	}
-	log_info("bind success");
-	/*isten*/
-	if(ERROR == listen(listenfd_,5))
-	{
-		log_err("fail on listen");
-		return ERROR;
-	}
-	log_info("listen success");
-	epollfd_ = epoll_create(MAXEVENTSIZE);
 	log_info("epoll_create success");
 //	ctl_event(listenfd_,true);
+//
 	return 0;
 }
 
-int set_noblocking(int fd)
-{
-	int flags;
-	if((flags = fcntl(fd, F_GETFL,0))==-1)
-					flags = 0;
-	return fcntl(fd,F_SETFL,flags | O_NONBLOCK);
-}
-
+/*
 void Server::epoll_loop()
 {
 	struct sockaddr_in client_addr;
@@ -96,3 +74,4 @@ void Server::epoll_loop()
 					close(cli);		
 	}
 }
+*/

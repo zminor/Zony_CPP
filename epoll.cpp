@@ -1,157 +1,152 @@
 #include "epoll.h"
-#include "dbg.h"
 
-#define ERROR -1
-
-#define EPOLLEVENTS_NUM 100
-#define BUFF_SIZE 1024
-#define FD_SIZE 1024
-
-#define IP_ADDR "127.0.0.1"
-#define SERV_PORT 8787
-
-int z_epoll::create(int flags)
+Epoll::Epoll():listenfd_(0),epfd_(0)
 {
-	int fd = epoll_create1(flags);
-	check(fd >0, "zn_epoll_create: epoll_create1");
-	events = ((struct epoll_event *) ,malloc(struct epoll_event)* MAXEVENTS);
-	check(events != NULL, "zn_epoll_create: malloc");
-	return fd;
 }
-void z_epoll::handle_accept(int epfd, int listenfd)
+
+Epoll::~Epoll()
 {
-	int cli_fd;
-	struct sockaddr_in cli_addr;
-	socklen_t cli_addr_len;
-	cli_fd = accpet(listenfd, (struct sockaddr*)&cli_addr,&cli_addr_len);
-	if(cli_fd == ERROR)
+}
+
+int Epoll::create()
+{
+	epfd_ = epoll_create(FD_SIZE);
+	return epfd_;
+}
+void Epoll::handle_accept(int epfd,int listenfd)
+{
+	int clifd;
+	struct sockaddr_in cliaddr;
+	socklen_t  cliaddrlen;
+	clifd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddrlen);
+	if(clifd == ERROR)
+		 log_err("accpet error:");
+	else
 	{
-		log_err("accept");
-		exit(1);
-	}else
-	{
-	/*add to log*/
-		printf("accept a new client: %s:%d\n", inet_ntoa(cli_addr.sin_addr), cli_addr.sin_port); 
-		add_event(epollfd,clifd,EPOLLIN);
+		 printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
+     add_event(epfd_,clifd,EPOLLIN);
 	}
 }
-
-void z_epoll::handle_events(int epfd,struct epoll_events *events, int num, int listenfd, char* buf)
+void Epoll::handle_events(int epfd, struct epoll_event *events,int num, int listenfd, char* buf)
 {
-	int i;
-	int fd;
+		int fd;
 	for(int i=0; i< num; ++i)
-	{
+	{	
 		fd = events[i].data.fd;
-		if((fd == listenfd) && event[i].events & EPOLLIN )
+		if((fd == listenfd)&& (events[i].events & EPOLLIN))
 		{
-			handle_accept( epfd,listenfd);
+			handle_accept(epfd,listenfd);
 		}
 		else if(events[i].events & EPOLLIN)
 		{
-			do_read(epollfd, fd, buf);
+			do_read(epfd_, fd, buf);
 		}
-		else if(events[i].evnets& EPOLLOUT)
+		else if(events[i].events & EPOLLOUT)
+			do_write(epfd_, fd, buf);
+	}
+}
+int Epoll::set_noblocking(int fd)
+{
+	int flags;
+	if((flags = fcntl(fd, F_GETFL,0))==-1)
+	{	
+		flags = 0;
+	}
+	return fcntl(fd,F_SETFL,flags | O_NONBLOCK);
+}
+
+int Epoll::init(int listenfd)
+{
+	listenfd_ = listenfd;
+	epfd_ = epoll_create(FD_SIZE);
+	if(epfd_ == ERROR)
+	{
+		log_err("epoll create");
+		return ERROR;
+	}
+
+	add_event(epfd_,listenfd_,EPOLLIN);
+	return 0;
+}
+void Epoll::add_event(int epfd,int fd,int state)
+{
+	struct epoll_event ev;
+	ev.events = state;
+	ev.data.fd = fd;
+	epoll_ctl(epfd,EPOLL_CTL_ADD,fd,&ev);
+}
+void Epoll::del_event(int epollfd,int fd,int state)
+{
+  struct epoll_event ev;
+  ev.events = state;
+  ev.data.fd = fd;
+  epoll_ctl(epollfd,EPOLL_CTL_DEL,fd,&ev);
+}
+
+void Epoll::mod_event(int epollfd,int fd,int state)
+{
+  struct epoll_event ev;
+  ev.events = state;
+  ev.data.fd = fd;
+  epoll_ctl(epollfd,EPOLL_CTL_MOD,fd,&ev);
+}
+void Epoll::run()
+{
+	do_epoll(listenfd_);
+}
+
+void Epoll::do_epoll(int listenfd)
+{
+	char buf[BUFF_SIZE];
+	memset(buf,0,BUFF_SIZE);
+	int ret;
+	struct epoll_event events[EPOLLEVENTS_NUM];
+	for(;;)
+	{
+		ret = epoll_wait(epfd_,events,EPOLLEVENTS_NUM,-1);
+		handle_events(epfd_,events,ret,listenfd,buf);
+	} 
+	close(epfd_);
+}
+
+void Epoll::do_read(int epfd, int fd, char*buf)
+{
+		int nread;
+		nread = read(fd,buf,BUFF_SIZE);
+		if(nread == -1)
 		{
-			do_write(epollfd, fd, buf);
+			log_err("read error");
+			close(fd);
+			del_event(epfd, fd ,EPOLLIN);
+		}
+		else if (nread == 0)
+		{
+			log_info("client close");
+			close(fd);
+			del_event(epfd, fd, EPOLLIN);
 		}
 		else
 		{
-		log_err("UNKNOWN EVENTS");
-		exit(1);
+			printf("message read...\n");
+			mod_event(epfd,fd,EPOLLOUT);
 		}
-	}
 }
 
-void do_epoll(int listenfd)
+void Epoll::do_write(int epfd, int fd, char *buf)
 {
-	int epfd;
-	struct epoll_event events[EPOLLEVENTS_NUM];
-	int ret;
-	char buf[BUFF_SIZE];
-	memset(buf,0, BUFF_SIZE);
-	epfd = epoll_create(FD_SIZE);
-	add_event(epfd, listenfd, EPOLLIN);
-	for( ; ; )
-	{
-		ret = epoll_wait(epfd, events, EPOLLEVENTS_NUM, -1);
-		handle_events   (epfd, events, ret, listenfd, buf);
-	}
-
-}
-
-void z_poll::add_event(int epfd, int fd, struct epoll_event *event)
-{
-	int rc = epoll_ctl(epfd,EPOLL_CTL_ADD,fd,event);
-	check(rc == 0, "zn_epoll_add:epoll_ctl");
-	return;
-}
-void z_poll::mod_event(int epfd, int fd, struct epoll_event *event)
-{
-	int rc = epoll_ctl(epfd, EPOLL_CTL_MOD,fd,event);
-	check(rc == 0, "zn_epoll_mod:epoll_ctl");
-	return;
-}
-void z_poll::del_event(int epfd, int fd, struct epoll_event *event)
-{
-	int rc = epoll_ctl(epfd, EPOLL_CTL_DEL,fd,event);
-	check(rc == 0, "zn_epoll_del:epoll_ctl");
-	return;	
-}
-int z_poll::zn_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
-{
-	int n = epoll_wait(epfd, events,maxevents, timeout);
-	check(n >= 0, "zn_epoll_wait:epoll_wait");
-	return n
-}
-
-void do_write(int epfd,int fd, char *buff)
-{
-	int nwrite;
+	int nwrite=0;
 	nwrite = write(fd,buf,strlen(buf));
-	if(nwrite == ERROR)
+	if(nwrite == -1)
 	{
 		log_err("write error");
+		del_event(epfd,fd,EPOLLOUT);
 		close(fd);
 	}
-	else 
+	else
 	{
-		if(fd == STDOUT_FILENO)
-		{
-			delete_event(epfd,fd,EPOLLOUT);
-		}
-		else 
-		{
-			modify_event(epfd,fd,EPOLLIN);
-		}
-		memset(buf, 0 ,BUFF_SIZE);
+		mod_event(epfd,fd,EPOLLIN);
+		memset(buf,0,BUFF_SIZE);
 	}
-}
-
-void do_read(int epfd, int fd,int sockfd, char *buff)
-{
-	int nread;
-	nread = read(fd, buf, BUFF_SIZE);
-	if(nread == -1 )  	/*error read*/
-	{
-		log_err("read error");
-		close(fd);
-	}
-	else if(nread == 0)  /*finish read*/
-	{
-		fprintf(stderr,"server close\n");
-		close(fd);
-	}
-	else 
-	{
-		if(fd == STDIN_FILENO)
-		{
-			add_event(epfd, sockfd, EPOLLOUT);
-		}
-		else 
-		{
-			delete_event(epfd, sockfd, EPOLLIN);
-			add_event(epollfd, STDOUT_FILENO,EPOLLOUT);
-		}
-	}
+	
+	
 }
