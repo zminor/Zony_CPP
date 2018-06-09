@@ -16,7 +16,6 @@
 #define FD_SIZE 1024
 
 #define IP_ADDR "127.0.0.1"
-#define SERV_PORT 8787
 
 class Epoll
 {

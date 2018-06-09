@@ -7,26 +7,6 @@ Epoll::Epoll():listenfd_(0),epfd_(0)
 Epoll::~Epoll()
 {
 }
-
-int Epoll::create()
-{
-	epfd_ = epoll_create(FD_SIZE);
-	return epfd_;
-}
-void Epoll::handle_accept(int epfd,int listenfd)
-{
-	int clifd;
-	struct sockaddr_in cliaddr;
-	socklen_t  cliaddrlen;
-	clifd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddrlen);
-	if(clifd == ERROR)
-		 log_err("accpet error:");
-	else
-	{
-		 printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
-     add_event(epfd_,clifd,EPOLLIN);
-	}
-}
 void Epoll::handle_events(int epfd, struct epoll_event *events,int num, int listenfd, char* buf)
 {
 		int fd;
@@ -121,7 +101,7 @@ void Epoll::do_read(int epfd, int fd, char*buf)
 		}
 		else if (nread == 0)
 		{
-			log_info("client close");
+			printf("client close");
 			close(fd);
 			del_event(epfd, fd, EPOLLIN);
 		}
@@ -132,6 +112,22 @@ void Epoll::do_read(int epfd, int fd, char*buf)
 		}
 }
 
+void Epoll::handle_accept(int epfd,int listenfd)
+{
+	int clifd;
+	struct sockaddr_in cliaddr;
+	socklen_t  cliaddrlen;
+	clifd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddrlen);
+	if(clifd == ERROR)
+	{
+		 log_err("accept error:");	
+	}
+	else
+	{
+		 printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
+     add_event(epfd_,clifd,EPOLLIN);
+	}
+}
 void Epoll::do_write(int epfd, int fd, char *buf)
 {
 	int nwrite=0;

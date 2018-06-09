@@ -1,8 +1,8 @@
 #include "server.h"
 
-int main()
+int main(int argc, char* argv[])
 {
-				Server server;
-				server.run();
+	Server server;
+	server.run();
 	return 0;
 }

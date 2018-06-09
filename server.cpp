@@ -43,35 +43,6 @@ int Server::init()
 		log_err("epoll initialization");
 	}
 
-	log_info("epoll_create success");
-//	ctl_event(listenfd_,true);
-//
+	printf("epoll_create success\n");
 	return 0;
 }
-
-/*
-void Server::epoll_loop()
-{
-	struct sockaddr_in client_addr;
-	socklen_t cli_len = sizeof(sockaddr);
-	int numfds=0;
-	int cli =0;
-	int bufflen = 0;
-	struct epoll_event events[MAXEVENTSIZE];
-
-	char msg[] = "Hello and fk u!\n";
-	int sent;
-	while(true)
-	{
-					printf("start accepting...");
-					if( (cli = accept(listenfd_, (struct sockaddr *)&client_addr,&cli_len))== ERROR)
-					{
-						log_err("accept err");
-						exit(1);
-					}
-					sent = send(cli,msg, strlen(msg),0);
-					printf("%d bytes sent: %s\n", sent, inet_ntoa(client_addr.sin_addr));
-					close(cli);		
-	}
-}
-*/

@@ -1,7 +1,7 @@
 #include "socket.h"
 
 #define ERROR -1
-#define PORT 8789
+#define PORT 8787
 
 Socket::Socket()
 {
