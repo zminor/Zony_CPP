@@ -21,8 +21,8 @@ public:
 
 	bool Get_value(const string& tag, string & res_value)const ;
 	void Add_tag_value(string, string);
-	void Set_first_line(const string& line);
 
+	void Set_first_line(const string& line);
 	const string Get_first_line() const;
 
 	const std::vector<Tag_value_pair> & Get_tag_values() const
