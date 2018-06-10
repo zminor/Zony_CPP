@@ -27,7 +27,7 @@ public:
 	void run();
 
 	int create();
-	void handle_accept(int epfd, int listenfd);
+	void handle_accept(int epfd, int listenfd,epoll_event * event);
 	
 	void handle_events(int epfd, struct epoll_event *events,int num, int listenfd, char* buf);
 	void do_epoll (int listenfd);
@@ -37,7 +37,7 @@ public:
 
 	void do_write(int epfd, int fd, char *buf);
 	void do_read (int epfd, int fd, char *buf);
-
+	
 private:
 	int set_noblocking(int fd);
 

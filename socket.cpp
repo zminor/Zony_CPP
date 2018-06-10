@@ -48,3 +48,21 @@ int Socket::init()
 	return listenfd;
 }
 
+int sock_non_blocking(int listenfd)
+{	
+	int flags, ret;
+	flags = fcntl(listenfd, F_GETFL,0);
+	if(flags == ERROR)
+	{
+		log_err("fcntl");
+		return ERROR;
+	}
+	flags |= O_NONBLOCK;
+	ret = fcntl( listenfd, F_SETFL, flags);
+	if(ret == ERROR)
+	{
+		log_err("fcntl");
+		return ERROR;
+	}
+	return 0;
+}

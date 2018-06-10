@@ -7,33 +7,6 @@ Epoll::Epoll():listenfd_(0),epfd_(0)
 Epoll::~Epoll()
 {
 }
-void Epoll::handle_events(int epfd, struct epoll_event *events,int num, int listenfd, char* buf)
-{
-		int fd;
-	for(int i=0; i< num; ++i)
-	{	
-		fd = events[i].data.fd;
-		if((fd == listenfd)&& (events[i].events & EPOLLIN))
-		{
-			handle_accept(epfd,listenfd);
-		}
-		else if(events[i].events & EPOLLIN)
-		{
-			do_read(epfd_, fd, buf);
-		}
-		else if(events[i].events & EPOLLOUT)
-			do_write(epfd_, fd, buf);
-	}
-}
-int Epoll::set_noblocking(int fd)
-{
-	int flags;
-	if((flags = fcntl(fd, F_GETFL,0))==-1)
-	{	
-		flags = 0;
-	}
-	return fcntl(fd,F_SETFL,flags | O_NONBLOCK);
-}
 
 int Epoll::init(int listenfd)
 {
@@ -79,14 +52,15 @@ void Epoll::do_epoll(int listenfd)
 {
 	char buf[BUFF_SIZE];
 	memset(buf,0,BUFF_SIZE);
-	int ret;
+	int event_num;
 	struct epoll_event events[EPOLLEVENTS_NUM];
 	for(;;)
 	{
-		ret = epoll_wait(epfd_,events,EPOLLEVENTS_NUM,-1);
-		handle_events(epfd_,events,ret,listenfd,buf);
+		event_num = epoll_wait(epfd_,events,EPOLLEVENTS_NUM,-1);
+		handle_events(epfd_,events,event_num,listenfd,buf);
 	} 
 	close(epfd_);
+	close(listenfd);
 }
 
 void Epoll::do_read(int epfd, int fd, char*buf)
@@ -107,25 +81,61 @@ void Epoll::do_read(int epfd, int fd, char*buf)
 		}
 		else
 		{
-			printf("message read...\n");
+			printf("message read: %s\n",buf);
 			mod_event(epfd,fd,EPOLLOUT);
 		}
 }
 
-void Epoll::handle_accept(int epfd,int listenfd)
+void Epoll::handle_events(int epfd, struct epoll_event *events,int num, int listenfd, char* buf)
+{
+		int fd;
+	for(int i=0; i< num; ++i)
+	{	
+		fd = events[i].data.fd;
+		if((fd == listenfd)&& (events[i].events & EPOLLIN))
+		{
+			handle_accept(epfd,listenfd,&(events[i]));
+		}
+		else if(events[i].events & EPOLLIN)
+		{
+			do_read(epfd_, fd, buf);
+		}
+		else if(events[i].events & EPOLLOUT)
+			do_write(epfd_, fd, buf);		
+		else if((events[i].events & EPOLLERR) ||(events[i].events & EPOLLHUP) || (!(events[i].events & EPOLLIN)))
+		{
+			log_err("epoll err fd : %d", fd);
+			close(fd);
+			continue;
+		}
+	}
+}
+
+void Epoll::handle_accept(int epfd,int listenfd, epoll_event* event)
 {
 	int clifd;
 	struct sockaddr_in cliaddr;
 	socklen_t  cliaddrlen;
-	clifd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddrlen);
-	if(clifd == ERROR)
+	int rc;
+	while(1)
 	{
-		 log_err("accept error:");	
-	}
-	else
-	{
-		 printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
-     add_event(epfd_,clifd,EPOLLIN);
+		clifd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddrlen);	
+		if(clifd == ERROR)
+		{
+			if((errno == EAGAIN)||(errno == EWOULDBLOCK))		break;
+			else
+			{			
+	 			log_err("accept error:");
+				break;
+			}
+		}
+		rc = set_noblocking(listenfd);
+		check(rc == 0, "make_socket_non_blocking");
+		
+	  printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
+		event->events = EPOLLIN | EPOLLET | EPOLLONESHOT;
+    add_event(epfd_,clifd,event->events);
+
 	}
 }
 void Epoll::do_write(int epfd, int fd, char *buf)
@@ -140,9 +150,27 @@ void Epoll::do_write(int epfd, int fd, char *buf)
 	}
 	else
 	{
+		printf("message sent %s", buf);
 		mod_event(epfd,fd,EPOLLIN);
 		memset(buf,0,BUFF_SIZE);
+	}	
+}
+
+int Epoll::set_noblocking(int listenfd)
+{	
+	int flags, ret;
+	flags = fcntl(listenfd, F_GETFL,0);
+	if(flags == ERROR)
+	{
+		log_err("fcntl");
+		return ERROR;
 	}
-	
-	
+	flags |= O_NONBLOCK;
+	ret = fcntl( listenfd, F_SETFL, flags);
+	if(ret == ERROR)
+	{
+		log_err("fcntl");
+		return ERROR;
+	}
+	return 0;
 }
