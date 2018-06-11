@@ -1,21 +1,33 @@
-#ifndef RIO_H
-#define RIO_H
-
+#include <unistd.h>
 #include <sys/types.h>
-
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <cstring>
+//a buffer named rio_t
 #define RIO_BUFSIZE 8192
-
-typedef struct {
-    int rio_fd;             /* descriptor for this internal buf */
-    ssize_t rio_cnt;        /* unread bytes in internal buf */
-    char *rio_bufptr;       /* next unread byte in internal buf */
-    char rio_buf[RIO_BUFSIZE]; /* internal buffer */
+typedef struct rio_t{
+    int rio_fd; 
+    int rio_cnt; //unread bytes in rio_buf
+    char *rio_bufptr; //next unread byte in rio_buf
+    char rio_buf[RIO_BUFSIZE]; //internal buffer
+    
+    rio_t(int fd)
+        :rio_fd(fd),rio_cnt(0),rio_bufptr(rio_buf){ }
 } rio_t;
+class Rio{
+public:
+    //io function without internal buffer
+    //Succeed: return the number of byte; EOF: return 0; Fail: return -1
+    ssize_t readn(int fd,void *usrbuf,size_t n);
+    ssize_t writen(int fd,void *usrbuf,size_t n);    
 
-ssize_t rio_readn(int fd, void *usrbuf, size_t n);
-ssize_t rio_writen(int fd, void *usrbuf, size_t n);
-void rio_readinitb(rio_t *rp, int fd); 
-ssize_t	rio_readnb(rio_t *rp, void *usrbuf, size_t n);
-ssize_t	rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
+    //io function with internal buffer
+    //Succeed: return the number of byte; EOF: return 0; Fail: return -1
+    ssize_t readlineb(rio_t *rp,void *usrbuf,size_t maxlen);
+    ssize_t readnb(rio_t *rp,void *usrbuf,size_t n);
 
-#endif
+private:
+    //read with buffer
+    ssize_t rio_read(rio_t *rp,char *usrbuf,size_t n);
+};
