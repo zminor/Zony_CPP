@@ -16,7 +16,10 @@ namespace HttpServer
 		int run();
 		bool init();
 
-	private:
+	public:
+
+	protected:
+	static System::native_processid_type getServerProcessId(const std::string &serverName);
 	
 	private:
 		static bool get_start_args(

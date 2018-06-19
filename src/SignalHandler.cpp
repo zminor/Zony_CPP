@@ -49,21 +49,21 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 {
 	globalServerPtr = server;
 
-	struct ::sigaction act{};
+	struct ::sigaction act{};						//Struct sigaction
 
-	act.sa_handler = handlerSigInt; //assign func ptr
+	act.sa_handler = handlerSigInt; 		//Interrupt
 	::sigaction(SIGINT, &act, nullptr);
 
-	act.sa_handler = handlerSigTerm;
+	act.sa_handler = handlerSigTerm;		//Terminate
 	::sigaction(SIGTERM, &act, nullptr);
 
-	act.sa_handler = handlerSigUsr1;
+	act.sa_handler = handlerSigUsr1;		//Restart
 	::sigaction(SIGUSR1, &act, nullptr);
 
-	act.sa_handler = handlerSigUsr2;
+	act.sa_handler = handlerSigUsr2;		//Update Module
 	::sigaction(SIGUSR2, &act, nullptr);
 
-	::signal(SIGPIPE, SIG_IGN);
+	::signal(SIGPIPE, SIG_IGN);					//Ignore to avoid program quit
 	return true;
 }
 
