@@ -1,4 +1,6 @@
 #include "Server.h"
+#include "ServerStructuresArguments.h"
+
 
 namespace HttpServer
 {
@@ -34,6 +36,13 @@ int Server:: command_help(const int argc, const char*argv[]) const
 
 int Server::command_start(const int argc, const char*argv[])
 {
+	struct server_start_args st = {};
+
+	if(Server::get_start_args(argc,argv,&st) == false)
+	{
+		return 0x1;
+	}
+
 	std::cout<<"start"<<std::endl;
 	return 0;
 }
@@ -56,4 +65,11 @@ int Server::command_update_module(const int argc, const char*argv[]) const
 	return 0;
 }
 
+bool Server::get_start_args(
+				const int argc,
+				const char*argv[],
+				struct server_start_args * st) 
+{
+	return false;
+}
 }

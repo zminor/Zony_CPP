@@ -17,8 +17,13 @@ namespace HttpServer
 		bool init();
 
 	private:
-
-	protected:
+	
+	private:
+		static bool get_start_args(
+				const int,
+				const char*[],
+				struct server_start_args*
+		);
 	public:
 		Server() = default;
 		void stop();
