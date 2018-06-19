@@ -2,6 +2,7 @@
 #define __SIGNALHANDLER_H__
 
 #include "server/Server.h"
+#include <csignal>
 
 bool bindSignalHandler(HttpServer::Server *server) noexcept;
 

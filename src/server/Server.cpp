@@ -1,9 +1,33 @@
 #include "Server.h"
 #include "ServerStructuresArguments.h"
-
+#include "../SignalHandler.h"
 
 namespace HttpServer
 {
+
+static std::string get_server_name(const int argc, const char* argv[])
+{
+	std::string server_name;
+
+	for(int i=0; i< argc; ++i)
+	{
+		if(argv[i] == ::strstr(argv[i], "--server-name=") )
+		{
+			//Server name is typed in as parameter
+			server_name = std::string(argv[i] + sizeof("--server-name=")-1);
+			break;
+		}
+	}
+		if(server_name.empty())
+		{
+			//Take first program name as Server_name
+			server_name = argv[0];
+		}
+
+		System::filterSharedMemoryName(server_name);
+		return server_name;
+	
+}
 
 int Server::run()
 {
@@ -26,6 +50,13 @@ void Server::update()
 bool Server::init()
 {
 	return true;
+}
+System::native_processid_type Server::getServerProcessId(const std::string &serverName)
+{
+	System::native_processid_type pid =0;
+
+	/* to Add*/
+	return pid;
 }
 
 int Server:: command_help(const int argc, const char*argv[]) const
@@ -59,7 +90,7 @@ int Server::command_terminate(const int argc, const char*argv[]) const
 	const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
 	if( 1<pid && System::sendSignal(pid, SIGTERM))
 	{
-		return EXIT_SUCESS;
+		return EXIT_SUCCESS;
 	}
 	return EXIT_FAILURE;
 }
@@ -78,33 +109,4 @@ bool Server::get_start_args(
 	return false;
 }
 
-static System::native_processid_type getServerProcessId(const std::string &serverName)
-{
-	System::native_processid_type pid = 0;
-
-	//System::GlobalMutex glob_mtx;
-
-}
-
-static std::string get_server_name(const int argc, const char* argv[])
-{
-	std::string server_name;
-	for(int i=0; i< argc; ++i)
-	{
-		if(argv[i] == ::strstr(argv[i], "--server-name=") )
-		{
-			//Server name is typed in as parameter
-			server_name = std::string(argv[i] + sizeof("--server-name=")-1);
-			break;
-		}
-		if(server_name.empty())
-		{
-			//Take first program name as Server_name
-			server_name = argv[0];
-		}
-
-		System::filterSharedMemoryName(server_name);
-		return server_name;
-	}
-}
 }
