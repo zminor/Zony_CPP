@@ -51,18 +51,18 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 
 	struct ::sigaction act{};
 
-	act.sa_handler = handlerSigInt; //assign func ptr
+	act.sa_handler = handlerSigInt; 		//Interrupt
 	::sigaction(SIGINT, &act, nullptr);
 
-	act.sa_handler = handlerSigTerm;
+	act.sa_handler = handlerSigTerm;		//Terminate
 	::sigaction(SIGTERM, &act, nullptr);
 
-	act.sa_handler = handlerSigUsr1;
+	act.sa_handler = handlerSigUsr1;		//restart
 	::sigaction(SIGUSR1, &act, nullptr);
 
-	act.sa_handler = handlerSigUsr2;
+	act.sa_handler = handlerSigUsr2;		//updateModule
 	::sigaction(SIGUSR2, &act, nullptr);
-
+	//Prevent program from quit
 	::signal(SIGPIPE, SIG_IGN);
 	return true;
 }

@@ -54,15 +54,29 @@ bool Server::init()
 System::native_processid_type Server::getServerProcessId(const std::string &serverName)
 {
 	System::native_processid_type pid =0;
-
+	
 	/* to Add*/
 	return pid;
 }
 
 int Server:: command_help(const int argc, const char*argv[]) const
 {
-  std::cout<<"help"<<std::endl;
-	return 0;
+  std::cout<<"fetching help info..."<<std::endl;
+
+	std::cout << std::left << "Available arguments:" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--start" << "Start http server" << std::endl
+			<< std::setw(8) << ' ' << std::setw(22) << "[options]" << std::endl
+			<< std::setw(8) << ' ' << std::setw(22) << "--force" << "Forcibly start http server (ignore existing instance)" << std::endl
+			<< std::setw(8) << ' ' << std::setw(22) << "--config-path=<path>" << "Path to directory with configuration files" << std::endl
+			<< std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--restart" << "Restart http server" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--update-module" << "Update applications modules" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--kill" << "Shutdown http server" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--help" << "This help" << std::endl
+			<< std::endl<< "Optional arguments:" << std::endl
+			<< std::setw(4) << ' ' << std::setw(26) << "--server-name=<name>" << "Name of server instance" << std::endl;
+
+		return EXIT_SUCCESS;
 }
 
 int Server::command_start(const int argc, const char*argv[])
@@ -80,15 +94,22 @@ int Server::command_start(const int argc, const char*argv[])
 
 int Server::command_restart(const int argc, const char*argv[]) const
 {
-	std::cout << "restart"<<std::endl;
-	return 0;
+	std::cout << "restart..."<<std::endl;
+
+	const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
+	if( 1< pid && System::sendSignal(pid,SIGUSR1))
+	{
+		return EXIT_SUCCESS;
+	}
+	return EXIT_FAILURE;
 }
 
 int Server::command_terminate(const int argc, const char*argv[]) const
 {
 	std::cout<<"Terminate..."<< std::endl;
+
 	const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
-	if( 1<pid && System::sendSignal(pid, SIGTERM))
+	if( 1<pid && System::sendSignal(pid, SIGTERM))   //Pid=1: Init process
 	{
 		return EXIT_SUCCESS;
 	}
@@ -97,8 +118,13 @@ int Server::command_terminate(const int argc, const char*argv[]) const
 
 int Server::command_update_module(const int argc, const char*argv[]) const
 {
-	std::cout<< "update module:"<< std::endl;
-	return 0;
+	std::cout<< "update module..."<< std::endl;
+	const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
+	if( 1< pid && System::sendSignal(pid,SIGUSR2))
+	{
+		return EXIT_SUCCESS;
+	}
+	return EXIT_FAILURE;
 }
 
 bool Server::get_start_args(

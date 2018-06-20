@@ -23,8 +23,12 @@ int main(const int argc,const char* argv[])
 
 		if(commands.cend() != command)
 		{
-			HttpServer::Server server;
-			exitcode = command-> second(&server,argc,argv);		
+			HttpServer::Server server;				//Initialize server
+			if( bindSignalHandlers(&server))	//Bind Signals
+			{
+				exitcode = command-> second(&server,argc,argv);	//execute command		
+				stopSignalHandlers();
+			}
 		}
 		else 
 		{
