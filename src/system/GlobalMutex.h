@@ -30,7 +30,7 @@ namespace System
 	private:
 		::sem_t *mtx_desc;
 		std::string mtx_name;
-	}
+	};
 
 }
 
