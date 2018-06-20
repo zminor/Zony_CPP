@@ -7,7 +7,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
+
 #include "../system/System.h"
+#include "../system/GlobalMutex.h"
+
 #include <string.h>
 #include <iomanip>
 namespace HttpServer
