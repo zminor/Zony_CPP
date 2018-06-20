@@ -55,6 +55,12 @@ System::native_processid_type Server::getServerProcessId(const std::string &serv
 {
 	System::native_processid_type pid =0;
 	
+	System::GlobalMutex glob_mtx;
+
+	if(glob_mtx.open(serverName))
+	{
+		
+	}
 	/* to Add*/
 	return pid;
 }
