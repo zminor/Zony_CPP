@@ -67,7 +67,7 @@ bool bindSignalHandlers(HttpServer::Server *server) noexcept
 	return true;
 }
 
-void stopSignalHander() noexcept
+void stopSignalHandlers() noexcept
 {
 	
 }

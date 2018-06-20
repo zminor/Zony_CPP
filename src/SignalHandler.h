@@ -4,7 +4,7 @@
 #include "server/Server.h"
 #include <csignal>
 
-bool bindSignalHandler(HttpServer::Server *server) noexcept;
+bool bindSignalHandlers(HttpServer::Server *server) noexcept;
 
 void stopSignalHandlers() noexcept;
 

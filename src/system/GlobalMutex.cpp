@@ -1,6 +1,9 @@
 #include "GlobalMutex.h"
 
-GlobalMutex::GlobalMutex():mtx_desc(nullptr) noexcept
+namespace System{
+
+GlobalMutex::GlobalMutex() noexcept
+				: mtx_desc(nullptr)
 {
 
 }
@@ -10,9 +13,9 @@ GlobalMutex::~GlobalMutex() noexcept
 	this->close();
 }
 
-bool GLobalMutex::create(const string &mutexName)
+bool GlobalMutex::create(const std::string &mutexName)
 {
-	this.close();
+	this->close();
 	sem_t * sem = ::sem_open(
 						mutexName.c_str(),
 						O_CREAT,
@@ -32,19 +35,19 @@ bool GLobalMutex::create(const string &mutexName)
 bool GlobalMutex::destroy()
 {
 	const int ret = ::sem_unlink( 
-			this -> mutexName.c_str()
+			this -> mtx_name.c_str()
 			);
 	this->close();
 
 	return 0 ==ret;
 }
 
-bool destroy(cons std::string &mutexName)
+bool GlobalMutex:: destroy(const std::string &mutexName)
 {
 	return 0 == ::sem_unlink(mutexName.c_str());
 }
 
-bool open(const std::string &mutexName)
+bool GlobalMutex:: open(const std::string &mutexName)
 {
 	this->close();
 	::sem_t * sem = sem_open(
@@ -55,8 +58,8 @@ bool open(const std::string &mutexName)
 	{
 		return false;
 	}
-	this.mtx_desc = sem;
-	this.mtx_name = mutexName;
+	this->mtx_desc = sem;
+	this->mtx_name = mutexName;
 	return true;
 }
 
@@ -89,5 +92,7 @@ bool GlobalMutex:: try_lock() const noexcept
 bool GlobalMutex:: unlock() const noexcept
 {
 	return 0 == ::sem_post(this->mtx_desc);
+}
+
 }
 

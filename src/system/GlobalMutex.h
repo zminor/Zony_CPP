@@ -2,8 +2,8 @@
 #define __GLOBAL_MUTEX_H__
 
 #include <semaphore.h>
-
-#include <string.h>
+#include <fcntl.h>
+#include <string>
 
 namespace System
 {
@@ -30,7 +30,7 @@ namespace System
 	private:
 		::sem_t *mtx_desc;
 		std::string mtx_name;
-	}
+	};
 
 }
 

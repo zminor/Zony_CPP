@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <functional>
+#include "SignalHandler.h"
 
 int main(const int argc,const char* argv[])
 {
