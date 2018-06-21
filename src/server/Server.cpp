@@ -5,194 +5,193 @@
 namespace HttpServer
 {
 
-//---------------------Port------------------//
-bool Server::tryBindPort(
-		const int port,
-		std::unorderd_map <int>&ports
-		)
-{
-	return false;	
-}
+	//---------------------Port------------------//
+	bool Server::tryBindPort(
+			const int port,
+			std::unordered_set <int> & ports
+			)	
+	{
+		return false;	
+	}
 
-void Server::initAppsPorts()
-{
-}
-//---------------------Main Func-------------------//
-int Server::run()
-{
-		return 0;
-}
-void Server::stop()
-{
+	void Server::initAppsPorts()
+	{
+	}
+	//---------------------Main Func-------------------//
+	int Server::run()
+	{
+			return 0;
+	}
+	void Server::stop()
+	{
 
-}
+	}	
 
-void Server:: restart()
-{
+	void Server:: restart()
+	{
 
-}
+	}
 
-void Server::update()
-{
+	void Server::update()
+	{
 
-}
-bool Server::init()
-{
-	return true;
-}
-//------------------------Other-----------------------//
-System::native_processid_type Server::getServerProcessId(const std::string &serverName)
-{
-	System::native_processid_type pid =0;
+	}
+	bool Server::init()
+	{
+		return true;
+	}
+	//------------------------Other-----------------------//
+	System::native_processid_type Server::getServerProcessId(const std::string &serverName)
+	{
+		System::native_processid_type pid =0;
 	
-	System::GlobalMutex glob_mtx;
+		System::GlobalMutex glob_mtx;
 
-	if(glob_mtx.open(serverName))
-	{
-		System::SharedMemory glob_mem;
-
-		glob_mtx.lock();
-
-		if(glob_mem.open(serverName))	//Set shm_desc with serverName
+		if(glob_mtx.open(serverName))
 		{
-			glob_mem.read(&pid, sizeof(pid)); //??? 
+			System::SharedMemory glob_mem;
+
+			glob_mtx.lock();
+
+			if(glob_mem.open(serverName))	//Set shm_desc with serverName
+			{
+				glob_mem.read(&pid, sizeof(pid)); //??? 
+			}
+			glob_mtx.unlock();
 		}
-		glob_mtx.unlock();
+
+		return pid;
 	}
 
-	return pid;
-}
-
-static std::string get_server_name(const int argc, const char* argv[])
-{
-	std::string server_name;
-
-	for(int i=0; i< argc; ++i)
+	static std::string get_server_name(const int argc, const char* argv[])
 	{
-		if(argv[i] == ::strstr(argv[i], "--server-name=") )
+		std::string server_name;
+
+		for(int i=0; i< argc; ++i)
 		{
-			//Server name is typed in as parameter
-			server_name = std::string(argv[i] + sizeof("--server-name=")-1);
-			break;
+			if(argv[i] == ::strstr(argv[i], "--server-name=") )
+			{
+				//Server name is typed in as parameter
+				server_name = std::string(argv[i] + sizeof("--server-name=")-1);
+				break;
+			}
 		}
-	}
-		if(server_name.empty())
-		{
-			//Take first program name as Server_name
-			server_name = argv[0];
-		}
+			if(server_name.empty())
+			{
+				//Take first program name as Server_name
+				server_name = argv[0];
+			}
 
 		System::filterSharedMemoryName(server_name);
 		return server_name;
 	
-}
+	}
 
-bool Server::get_start_args(
+	bool Server::get_start_args(
 				const int argc,
 				const char*argv[],
 				struct server_start_args * st) 
-{
-	for(int i =1; i< argc; ++i)
 	{
-		if( 0 == ::strcmp(argv[i], "--start"))
+		for(int i =1; i< argc; ++i)
 		{
+			if( 0 == ::strcmp(argv[i], "--start"))
+			{
+			}
+			else if(0 == ::strcmp(argv[i], "--force"))
+			{
+					st->force = true;	
+			}
+			else if(argv[i] == ::strstr(argv[i], "--config-path=")) //Config path,following '--config-path='
+			{	
+				st->config_path = std::string(argv[i] + sizeof("--config-path=") -1);
+			}
+			else if(argv[i] == ::strstr(argv[i], "--server-name"))	//Server name
+			{
+				st->server_name = std::string(argv[i] + sizeof("--server-name=")-1);
+			}
+			else 
+			{
+				std::cout<< "Argument '" << argv[i] << "' can`t be applied with --start;" << std::endl;
+				return false;
+			}
+
+			if(st -> server_name.empty())
+			{
+				st -> server_name = argv[0];
+			}
+			System::filterSharedMemoryName(st->server_name);	
 		}
-		else if(0 == ::strcmp(argv[i], "--force"))
-		{
-				st->force = true;	
-		}
-		else if(argv[i] == ::strstr(argv[i], "--config-path=")) //Config path,following '--config-path='
-		{	
-			st->config_path = std::string(argv[i] + sizeof("--config-path=") -1);
-		}
-		else if(argv[i] == ::strstr(argv[i], "--server-name"))	//Server name
-		{
-			st->server_name = std::string(argv[i] + sizeof("--server-name=")-1);
-		}
-		else 
-		{
-			std::cout<< "Argument '" << argv[i] << "' can`t be applied with --start;" << std::endl;
-			return false;
-		}
+			return true;
+	}
+	//----------------------Command_line----------------------------//
 
-		if(st -> server_name.empty())
-		{
-			st -> server_name = argv[0];
-		}
-		System::filterSharedMemoryName(st->server_name);
-		
-		return true;
-}
-
-//----------------------Command_line----------------------------//
-
-int Server:: command_help(const int argc, const char*argv[]) const
-{
-  std::cout<<"fetching help info..."<<std::endl;
-
-	std::cout << std::left << "Available arguments:" << std::endl
-			<< std::setw(4) << ' ' << std::setw(26) << "--start" << "Start http server" << std::endl
-			<< std::setw(8) << ' ' << std::setw(22) << "[options]" << std::endl
-			<< std::setw(8) << ' ' << std::setw(22) << "--force" << "Forcibly start http server (ignore existing instance)" << std::endl
-			<< std::setw(8) << ' ' << std::setw(22) << "--config-path=<path>" << "Path to directory with configuration files" << std::endl
-			<< std::endl
-			<< std::setw(4) << ' ' << std::setw(26) << "--restart" << "Restart http server" << std::endl
-			<< std::setw(4) << ' ' << std::setw(26) << "--update-module" << "Update applications modules" << std::endl
-			<< std::setw(4) << ' ' << std::setw(26) << "--kill" << "Shutdown http server" << std::endl
-			<< std::setw(4) << ' ' << std::setw(26) << "--help" << "This help" << std::endl
-			<< std::endl<< "Optional arguments:" << std::endl
-			<< std::setw(4) << ' ' << std::setw(26) << "--server-name=<name>" << "Name of server instance" << std::endl;
-
-		return EXIT_SUCCESS;
-}
-
-int Server::command_start(const int argc, const char*argv[])
-{
-	struct server_start_args st = {};
-
-	if(Server::get_start_args(argc,argv,&st) == false)
+	int Server:: command_help(const int argc, const char*argv[]) const
 	{
-		return 0x1;
+ 		 std::cout<<"fetching help info..."<<std::endl;
+
+		std::cout << std::left << "Available arguments:" << std::endl
+				<< std::setw(4) << ' ' << std::setw(26) << "--start" << "Start http server" << std::endl
+				<< std::setw(8) << ' ' << std::setw(22) << "[options]" << std::endl
+				<< std::setw(8) << ' ' << std::setw(22) << "--force" << "Forcibly start http server (ignore existing instance)" << std::endl
+				<< std::setw(8) << ' ' << std::setw(22) << "--config-path=<path>" << "Path to directory with configuration files" << std::endl
+				<< std::endl
+				<< std::setw(4) << ' ' << std::setw(26) << "--restart" << "Restart http server" << std::endl
+				<< std::setw(4) << ' ' << std::setw(26) << "--update-module" << "Update applications modules" << std::endl
+				<< std::setw(4) << ' ' << std::setw(26) << "--kill" << "Shutdown http server" << std::endl
+				<< std::setw(4) << ' ' << std::setw(26) << "--help" << "This help" << std::endl
+				<< std::endl<< "Optional arguments:" << std::endl
+				<< std::setw(4) << ' ' << std::setw(26) << "--server-name=<name>" << "Name of server instance" << std::endl;
+
+			return EXIT_SUCCESS;
 	}
 
-	std::cout<<"start"<<std::endl;
-	return 0;
-}
-
-int Server::command_restart(const int argc, const char*argv[]) const
-{
-	std::cout << "restart..."<<std::endl;
-
-	const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
-	if( 1< pid && System::sendSignal(pid,SIGUSR1))
+	int Server::command_start(const int argc, const char*argv[])
 	{
-		return EXIT_SUCCESS;
+		struct server_start_args st = {};
+
+		if(Server::get_start_args(argc,argv,&st) == false)
+		{
+			return 0x1;
+		}
+
+		std::cout<<"start"<<std::endl;
+		return 0;
 	}
-	return EXIT_FAILURE;
-}
 
-int Server::command_terminate(const int argc, const char*argv[]) const
-{
-	std::cout<<"Terminate..."<< std::endl;
-
-	const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
-	if( 1<pid && System::sendSignal(pid, SIGTERM))   //Pid=1: Init process
+	int Server::command_restart(const int argc, const char*argv[]) const
 	{
-		return EXIT_SUCCESS;
-	}
-	return EXIT_FAILURE;
-}
+		std::cout << "restart..."<<std::endl;
 
-int Server::command_update_module(const int argc, const char*argv[]) const
-{
-	std::cout<< "update module..."<< std::endl;
-	const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
-	if( 1< pid && System::sendSignal(pid,SIGUSR2))
+		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
+		if( 1< pid && System::sendSignal(pid,SIGUSR1))
+		{
+			return EXIT_SUCCESS;
+		}
+		return EXIT_FAILURE;
+	}	
+
+	int Server::command_terminate(const int argc, const char*argv[]) const
 	{
-		return EXIT_SUCCESS;
+		std::cout<<"Terminate..."<< std::endl;
+
+		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
+		if( 1<pid && System::sendSignal(pid, SIGTERM))   //Pid=1: Init process
+		{
+			return EXIT_SUCCESS;
+		}
+		return EXIT_FAILURE;
 	}
-	return EXIT_FAILURE;
-}
+
+	int Server::command_update_module(const int argc, const char*argv[]) const
+	{	
+		std::cout<< "update module..."<< std::endl;
+		const System::native_processid_type pid = Server::getServerProcessId(get_server_name(argc,argv));
+		if( 1< pid && System::sendSignal(pid,SIGUSR2))
+		{
+			return EXIT_SUCCESS;
+		}
+		return EXIT_FAILURE;
+	}
 
 
 }

@@ -10,10 +10,13 @@
 
 #include "../system/System.h"
 #include "../system/GlobalMutex.h"
+#include "../system/SharedMemory.h"
 #include "ServerStructuresArguments.h"
 
 #include <string.h>
 #include <iomanip>
+#include <unordered_set>
+
 namespace HttpServer
 {
 	class Server
