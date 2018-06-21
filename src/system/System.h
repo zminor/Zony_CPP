@@ -8,6 +8,7 @@ namespace System
 {
 	typedef ::pid_t native_processid_type;  //Process Id
 
+	typedef int native_socket_type	;
 	native_processid_type getProcessId() noexcept;
 
 	bool sendSignal( const native_processid_type pid, const int signal) noexcept;

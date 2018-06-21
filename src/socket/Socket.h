@@ -1,6 +1,11 @@
 #ifndef __SOCKET_H__
 #define __SOCKET_H__
 
+#include "../system/System.h"
+#include <vector>
+#include <chrono>
+#include <string>
+
 namespace Socket
 {
 	class Socket
@@ -16,13 +21,13 @@ namespace Socket
 		bool open() noexcept;
 		bool close() noexcept;
 
-		bool is_open() noexcept;
+		bool is_open() const noexcept;
 		System::native_socket_type get_handle() const noexcept;
 
 		bool bind(const int port) const noexcept;
 		bool listen() const noexcept;
 
-		Socketaccept() const noexcept;
+		Socket accept() const noexcept;
 		Socket nonblock_accept() const noexcept;
 
 		Socket nonblock_accept(
@@ -72,7 +77,8 @@ namespace Socket
 
 		bool operator == (const Socket &obj) const noexcept;
 		bool operator != (const Socket &obj) const noexcept;
-
+		protected:
+		System::native_socket_type socket_handle;
 	};
 }
 namespace std
