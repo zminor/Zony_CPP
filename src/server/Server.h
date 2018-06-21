@@ -10,6 +10,7 @@
 
 #include "../system/System.h"
 #include "../system/GlobalMutex.h"
+#include "ServerStructuresArguments.h"
 
 #include <string.h>
 #include <iomanip>
@@ -17,21 +18,6 @@ namespace HttpServer
 {
 	class Server
 	{
-	protected:
-		int run();
-		bool init();
-
-	public:
-
-	protected:
-	static System::native_processid_type getServerProcessId(const std::string &serverName);
-	
-	private:
-		static bool get_start_args(
-				const int,
-				const char*[],
-				struct server_start_args*
-		);
 	public:
 		Server() = default;
 		void stop();
@@ -43,7 +29,29 @@ namespace HttpServer
 		int command_restart(const int argc, const char*argv[]) const;
 		int command_terminate(const int argc, const char*argv[]) const;
 		int command_update_module(const int argc, const char*argv[]) const;
+	protected:
+		
+		bool tryBindPort(
+				const int port,
+				std::unordered_set<int> &ports
+		);
+		
+		void initAppsPorts();
 
+		int run();
+		bool init();
+		void clear();
+
+		static System::native_processid_type getServerProcessId(const std::string &serverName);
+	
+	private:
+		static bool get_start_args(
+				const int,
+				const char*[],
+				struct server_start_args*
+		);
+	protected:
+	/*	std::vector<Socket::Socket> listeners;*/
 	};
 }
 #endif

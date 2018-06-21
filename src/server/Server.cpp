@@ -5,6 +5,64 @@
 namespace HttpServer
 {
 
+//---------------------Port------------------//
+bool Server::tryBindPort(
+		const int port,
+		std::unorderd_map <int>&ports
+		)
+{
+	return false;	
+}
+
+void Server::initAppsPorts()
+{
+}
+//---------------------Main Func-------------------//
+int Server::run()
+{
+		return 0;
+}
+void Server::stop()
+{
+
+}
+
+void Server:: restart()
+{
+
+}
+
+void Server::update()
+{
+
+}
+bool Server::init()
+{
+	return true;
+}
+//------------------------Other-----------------------//
+System::native_processid_type Server::getServerProcessId(const std::string &serverName)
+{
+	System::native_processid_type pid =0;
+	
+	System::GlobalMutex glob_mtx;
+
+	if(glob_mtx.open(serverName))
+	{
+		System::SharedMemory glob_mem;
+
+		glob_mtx.lock();
+
+		if(glob_mem.open(serverName))	//Set shm_desc with serverName
+		{
+			glob_mem.read(&pid, sizeof(pid)); //??? 
+		}
+		glob_mtx.unlock();
+	}
+
+	return pid;
+}
+
 static std::string get_server_name(const int argc, const char* argv[])
 {
 	std::string server_name;
@@ -29,41 +87,44 @@ static std::string get_server_name(const int argc, const char* argv[])
 	
 }
 
-int Server::run()
+bool Server::get_start_args(
+				const int argc,
+				const char*argv[],
+				struct server_start_args * st) 
 {
-		return 0;
-}
-void Server::stop()
-{
-
-}
-
-void Server:: restart()
-{
-
-}
-
-void Server::update()
-{
-
-}
-bool Server::init()
-{
-	return true;
-}
-System::native_processid_type Server::getServerProcessId(const std::string &serverName)
-{
-	System::native_processid_type pid =0;
-	
-	System::GlobalMutex glob_mtx;
-
-	if(glob_mtx.open(serverName))
+	for(int i =1; i< argc; ++i)
 	{
+		if( 0 == ::strcmp(argv[i], "--start"))
+		{
+		}
+		else if(0 == ::strcmp(argv[i], "--force"))
+		{
+				st->force = true;	
+		}
+		else if(argv[i] == ::strstr(argv[i], "--config-path=")) //Config path,following '--config-path='
+		{	
+			st->config_path = std::string(argv[i] + sizeof("--config-path=") -1);
+		}
+		else if(argv[i] == ::strstr(argv[i], "--server-name"))	//Server name
+		{
+			st->server_name = std::string(argv[i] + sizeof("--server-name=")-1);
+		}
+		else 
+		{
+			std::cout<< "Argument '" << argv[i] << "' can`t be applied with --start;" << std::endl;
+			return false;
+		}
+
+		if(st -> server_name.empty())
+		{
+			st -> server_name = argv[0];
+		}
+		System::filterSharedMemoryName(st->server_name);
 		
-	}
-	/* to Add*/
-	return pid;
+		return true;
 }
+
+//----------------------Command_line----------------------------//
 
 int Server:: command_help(const int argc, const char*argv[]) const
 {
@@ -133,12 +194,5 @@ int Server::command_update_module(const int argc, const char*argv[]) const
 	return EXIT_FAILURE;
 }
 
-bool Server::get_start_args(
-				const int argc,
-				const char*argv[],
-				struct server_start_args * st) 
-{
-	return false;
-}
 
 }

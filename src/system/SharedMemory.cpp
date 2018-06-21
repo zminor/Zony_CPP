@@ -1,4 +1,8 @@
 #include "SharedMemory.h"
+#include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <cstring>
 
 namespace System{
 SharedMemory::SharedMemory() noexcept :(shm_dest(-1))
