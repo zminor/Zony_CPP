@@ -6,7 +6,8 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <arpa/inet.h>
+	
 namespace Socket
 {
 		//---------------------Static---------------------//
@@ -60,24 +61,24 @@ namespace Socket
 		{
 			return this->socket_handle != ~0;
 		}
+
 		System::native_socket_type Socket::get_handle() const noexcept
 		{
 			return this->socket_handle;
 		}
-
 		bool Socket::bind(const int port) const noexcept
 		{
 			const ::sockaddr_in sock_addr{
 				AF_INET,
-				::htons(port),
-				::htonl(INADDR_ANY).
+				::htonl(port),  //htons Error??
+				::htonl(INADDR_ANY),
 				0
 			};
 
 			return 0 == ::bind(
 					this->socket_handle,
 					reinterpret_cast <const sockaddr *> (&sock_addr),
-					sizeof(sockadd_in)
+					sizeof(sockaddr_in)
 			);
 		}
 
@@ -86,7 +87,7 @@ namespace Socket
 				return  0 == ::listen(this->socket_handle, SOMAXCONN);
 		}
 
-		Socket::accept() const noexcept
+		Socket	Socket::accept() const noexcept
 		{
 			System::native_socket_type client_socket = ::accept(
 				this->socket_handle,
@@ -95,11 +96,50 @@ namespace Socket
 			);
 			return Socket(client_socket);
 		}
-		Socket nonblock_accept() const noexcept;
+	
+		Socket Socket::nonblock_accept() const noexcept
+		{
+				System::native_socket_type client_socket = ~0;
 
-		Socket nonblock_accept(
+				struct ::pollfd event {
+							this->socket_handle,
+							POLLIN,				
+							0
+						};
+
+			if (1 == ::poll(&event, 1, ~0) && event.revents & POLLIN)
+			{
+				client_socket = ::accept(
+								this->socket_handle,
+								static_cast<sockaddr *>(nullptr),
+								static_cast<socklen_t *>(nullptr)
+								);
+			}
+				return Socket(client_socket);
+		}
+
+		Socket Socket:: nonblock_accept(
 			const std::chrono::milliseconds &timeout
-		) const noexcept;
+		) const noexcept
+		{
+				System::native_socket_type client_socket = ~0;
+
+				struct ::pollfd event {
+							this->socket_handle,
+							POLLIN,				
+							0
+						};
+
+			if (1 == ::poll(&event, 1,int( timeout.count())) && event.revents & POLLIN)
+			{
+				client_socket = ::accept(
+								this->socket_handle,
+								static_cast<sockaddr *>(nullptr),
+								static_cast<socklen_t *>(nullptr)
+								);
+			}
+				return Socket(client_socket);
+		}
 		
 		bool Socket::shutdown() const noexcept
 		{
@@ -133,12 +173,13 @@ namespace Socket
 					sizeof(flags)
 			);
 		}
+
 		//-------------Receive--------------//
 		long Socket::recv(
 			std::vector<std::string :: value_type>&buf
 			) const noexcept
 		{
-			rreturn this->recv(buf.data(), buf.size());
+			return this->recv(buf.data(), buf.size());
 		}
 
 		long Socket::recv(
@@ -175,7 +216,7 @@ namespace Socket
 
 			if(1 == ::poll(&event, 1, int(timeout.count())) && event.revents & POLLIN)
 			{
-				recv_len = ::recv(this->socket_handle, buf,length,0)
+				recv_len = ::recv(this->socket_handle, buf,length,0);
 			}
 			return recv_len;
 		}
@@ -189,10 +230,36 @@ namespace Socket
 					POLLIN,
 					0
 				};
-			return ::poll(&event, 1, int(timeout.cout())) == 1;
+			return ::poll(&event, 1, int(timeout.count())) == 1;
 		}
 
 		//-----------Send----------------//
+
+		static long send_all(
+						const System::native_socket_type socket_handle,
+						const void *data,
+						const size_t length
+										)noexcept 
+		{
+			size_t total =0;
+			
+			while(total < length)
+			{
+				const long send_size = ::send(
+												socket_handle,
+												reinterpret_cast <const char*>(data)+total,
+												length - total,
+												0
+												);
+				if(send_size <0)
+				{
+					return send_size;
+				}
+
+				total += size_t(send_size);
+			}
+			return static_cast<long>(total);
+		}
 		long Socket:: send(const std::string & buf) const noexcept
 		{
 			return this->send( buf.data(), buf.length() );
@@ -203,10 +270,11 @@ namespace Socket
 			return send_all( this->socket_handle, buf, length);
 		}
 		
-		static long send_all(
+		static long nonblock_send_all(
 				const System::native_socket_type socket_handle,
 				const void *data,
-				const size_t length
+				const size_t length,
+				const std::chrono::milliseconds & timeout
 		) noexcept
 		{
 			size_t total =0;
@@ -264,19 +332,19 @@ namespace Socket
 			::poll(&event, 1, ~0);			//event, nfds, timeout
 		}
 		//------------Operator----------------//
-	  Socket ::Socket &operator = (const Socket &obj) noexcept
+	  Socket& Socket::operator = (const Socket &obj) noexcept
 		{
 			this-> socket_handle = obj.socket_handle;
 			return *this;
 		}
 
-		bool operator == (const Socket &obj) const noexcept
+	 bool Socket:: operator == (const Socket &obj) const noexcept
 		{
 			return this->socket_handle == obj.socket_handle;
 		}
-		
-		bool operator != (const Socket &obj) const noexcept
+		bool Socket:: operator != (const Socket &obj) const noexcept
 		{
 			return this->socket_handle != obj.socket_handle;
+
 		}
 }

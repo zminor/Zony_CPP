@@ -35,9 +35,9 @@ namespace Socket
 					std::chrono::milliseconds timeout = std::chrono::milliseconds(~0)
 					)	const noexcept;
 
-	proctected:
+	protected:
 		int obj_list;
-		mutable std::vector<struct ::epollevent> epoll_events;
+		mutable std::vector<struct ::epoll_event> epoll_events;
 	};
 }
 #endif

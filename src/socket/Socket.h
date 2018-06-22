@@ -93,15 +93,17 @@ namespace Socket
 		System::native_socket_type socket_handle;
 	};
 }
-namespace std
-{
-	//Hash for Socket
-	template<> struct hash<Socket::Socket>
+
+	namespace std
 	{
-		std::size_t operator()(const Socket::Socket &obj) const noexcept
+	//Hash for Socket
+		template<> struct hash<Socket::Socket>
 		{
-			return std::hash<System::native_socket_type>{} (obj.get_handle() );
-		}
-	};
-}
+			std::size_t operator()(const Socket::Socket &obj) const noexcept
+			{
+				return std::hash<System::native_socket_type>{} (obj.get_handle() );
+			}
+		};
+	}
+
 #endif

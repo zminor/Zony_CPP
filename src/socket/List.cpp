@@ -1,4 +1,7 @@
 #include "List.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 namespace Socket{
 		List:: List() noexcept : obj_list(~0)
@@ -20,7 +23,7 @@ namespace Socket{
 		}
 		void List:: destroy() noexcept
 		{
-			if(this->is_created)
+			if(this->is_created())
 			{
 				::close(this->obj_list);
 				this -> obj_list = ~0;
@@ -58,7 +61,7 @@ namespace Socket{
 		bool List:: recv(
 					std::vector<Socket> &sockets,
 					std::vector<Socket> &errors,
-					std::chrono::milliseconds timeout = std::chrono::milliseconds(~0)
+					std::chrono::milliseconds timeout 
 					)	const noexcept
 		{
 			return false;			
