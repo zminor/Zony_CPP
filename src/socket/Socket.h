@@ -11,6 +11,12 @@ namespace Socket
 	class Socket
 	{
 	public:
+		bool static Startup() noexcept;
+		bool static Cleanup() noexcept;
+		int static getLastError() noexcept;
+
+	public:
+		//---------------Constructor-------------//
 		Socket() noexcept;
 		Socket(const System::native_socket_type fd) noexcept;
 		Socket(const Socket &obj) noexcept;
@@ -68,6 +74,12 @@ namespace Socket
 
 		long nonblock_send(
 			const std::string &buf,
+			const std::chrono::milliseconds &timeout
+		) const noexcept;
+
+		long nonblock_send(
+			const void *buf,
+			const size_t length,
 			const std::chrono::milliseconds &timeout
 		) const noexcept;
 
