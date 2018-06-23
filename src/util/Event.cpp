@@ -87,7 +87,7 @@ namespace Utils
 		{
 						this->signaled.store(false);
 		}
-	
+
 		bool Event:: notified() const noexcept
 		{
 						return this->signaled.load();
