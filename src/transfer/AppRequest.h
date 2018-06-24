@@ -3,7 +3,7 @@
 
 #include "../socket/AdapterTls.h"
 #include "FileIncoming.h"
-
+#include <gnutls/gnutls.h> 
 #include <unordered_map>
 
 namespace Transfer

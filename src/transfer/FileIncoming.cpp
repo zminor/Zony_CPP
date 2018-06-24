@@ -1,9 +1,11 @@
 #include "FileIncoming.h"
+#include <fstream>
+#include "../utils/Utils.h"
 
 namespace Transfer
 {
 	
-	Fileincoming::FileIncoming(
+	FileIncoming::FileIncoming(
 		std::string &&fileTmpName,
 		std::string &&fileName,
 		std::string &&fileType,
