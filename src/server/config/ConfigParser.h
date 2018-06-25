@@ -3,6 +3,8 @@
 
 #include "../ServerSettings.h"
 #include "../../system/Module.h"
+#include <vector>
+#include "../ServerApplicationsTree.h"
 
 namespace HttpServer
 {
@@ -11,17 +13,18 @@ namespace HttpServer
 	public:
 		bool loadConfig(
 			const std::string &conf,
-			ServerSetting &settings,
+			ServerSettings &settings,
 			std::vector <System::Module> &modules
-		)
+		);
 	private:
-		struct ServerApplicationDefaultSettings{
+		struct ServerApplicationDefaultSettings
+		{
 			std::string temp_dir;
 			size_t request_max_size;
 		};
 		
 		static bool includeConfigFile(
-			const std::string &fileName.
+			const std::string &fileName,
 			std::string &strBuf,
 			const size_t offset = 0
 		);
@@ -29,8 +32,8 @@ namespace HttpServer
 		static bool addApplication(
 			const std::unordered_multimap <std::string, std::string> &app,
 			const ServerApplicationDefaultSettings & defaults,
-			std::vector<Sytem::Module> &modules,
-			ServerApplicationTree & apps_tree
+			std::vector <System::Module> &modules,
+			ServerApplicationsTree & apps_tree
 		);
 
 		static bool parseName(

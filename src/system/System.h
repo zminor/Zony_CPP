@@ -17,7 +17,7 @@ namespace System
 
 	bool changeCurrentDirectory(const std::string &dir);
 
-	bool isProcessExist(cost native_processid_type pid) noexcept;
+	bool isProcessExist(const native_processid_type pid) noexcept;
 
 }
 

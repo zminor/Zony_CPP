@@ -65,12 +65,12 @@ namespace System
 
 	Module &Module::operator =(const Module &obj) noexcept
 	{
-		return this*;	
+		return *this;	
 	}
 
 	Module &Module::operator =(Module &&obj) noexcept
 	{
-		return this*;
+		return *this;
 	}
 
 }

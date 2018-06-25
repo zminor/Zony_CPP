@@ -13,10 +13,14 @@
 #include "../system/SharedMemory.h"
 #include "ServerStructuresArguments.h"
 #include "config/ConfigParser.h"
+#include "ServerControls.h"
+#include "../socket/Socket.h"
 
 #include <string.h>
 #include <iomanip>
 #include <unordered_set>
+#include <vector>
+
 
 namespace HttpServer
 {
@@ -33,6 +37,8 @@ namespace HttpServer
 		int command_restart(const int argc, const char*argv[]) const;
 		int command_terminate(const int argc, const char*argv[]) const;
 		int command_update_module(const int argc, const char*argv[]) const;
+	public:
+		mutable ServerControls controls;
 	protected:
 		
 		bool tryBindPort(
@@ -47,7 +53,7 @@ namespace HttpServer
 		void clear();
 
 		static System::native_processid_type getServerProcessId(const std::string &serverName);
-	
+
 	private:
 		static bool get_start_args(
 				const int,
@@ -55,7 +61,9 @@ namespace HttpServer
 				struct server_start_args*
 		);
 	protected:
-	/*	std::vector<Socket::Socket> listeners;*/
+		std::vector<Socket::Socket> listeners;
+		std::vector<System::Module> modules;
+		System::CachePadding<std::atomic_size_t> padding_1;
 	};
 }
 #endif

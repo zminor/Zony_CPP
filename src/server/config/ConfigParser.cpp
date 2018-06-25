@@ -2,9 +2,9 @@
 
 namespace HttpServer
 {
-	bool loadConfig(
+	bool ConfigParser:: loadConfig(
 			const std::string &conf,
-			ServerSetting &settings,
+			ServerSettings &settings,
 			std::vector <System::Module> &modules
 	)
 	{
@@ -13,7 +13,7 @@ namespace HttpServer
 
 
 	bool ConfigParser:: includeConfigFile(
-		const std::string temp_dir,
+		const std::string &filename,
 		std::string &strBuf,
 		const size_t offset
 	)
@@ -21,18 +21,18 @@ namespace HttpServer
 		return false;
 	}
 
-	bool addApplication( 
+	bool ConfigParser:: addApplication( 
 			const std::unordered_multimap <std::string, std::string> &app,
 			const ServerApplicationDefaultSettings & defaults,
-			std::vector<Sytem::Module> &modules,
-			ServerApplicationTree & apps_tree
+			std::vector<System::Module> &modules,
+			ServerApplicationsTree & apps_tree
 	)
 	{
 		return false;
 	}
 	
 	
-	bool parseName(
+	bool ConfigParser:: parseName(
 		const std::string &fileName,			
 		std::unordered_map <std::string , std::string> &mimes_types
 	)

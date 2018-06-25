@@ -159,12 +159,15 @@ namespace HttpServer
 		//Change Current Directory
 		if(st.config_path.empty() == false )		
 		{
-			if(System::changeCurrentDirectory() == false)
+			if(System::changeCurrentDirectory(st.config_path) == false)
 			{
 				std::cout << "Configuration path "<< st.config_path<<" not found ..." << std::endl;
 				return 0x2;
 			}
 		}	
+		
+		System::GlobalMutex glob_mtx;
+		System::SharedMemory glob_mem;
 
 		//If force, destroy anything exists and start
 		if(st.force)
@@ -184,7 +187,7 @@ namespace HttpServer
 				System::native_processid_type pid = 0;
 				if(glob_mem.read( &pid, sizeof(pid)))
 				{
-					is_exists = System::isProcessExists(pid);
+					is_exists = System::isProcessExist(pid);
 				}
 			}
 			glob_mtx.unlock();
@@ -193,7 +196,7 @@ namespace HttpServer
 		if(is_exists) 
 		{
 			std::cout<< "Server Instance with name " << st.server_name << " Already running"<<std::endl;
-			return 0x3'
+			return 0x3;
 		}
 		//Creating GlobalMutex
 		if(glob_mtx.open(st.server_name) == false)
@@ -207,9 +210,9 @@ namespace HttpServer
 		//Creating SharedMemory
 		glob_mtx.lock();
 
-		if(glob_mem.open(std.server_name) == false)
+		if(glob_mem.open(st.server_name) == false)
 		{
-			if(glob_mem.create(st.server_name) == false)
+			if(glob_mem.create(st.server_name,sizeof(System::native_processid_type)) == false)
 			{
 				glob_mtx.unlock();
 				std::cout<<"Shared memory could not be allocated..."<<std::endl;
@@ -228,7 +231,7 @@ namespace HttpServer
 		}
 		glob_mtx.unlock();
 		//Start running
-		int exitcode = EXIT_FAILTURE;
+		int exitcode = EXIT_FAILURE;
 
 		do{
 			this->controls.setProcess(false);

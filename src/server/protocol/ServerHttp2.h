@@ -1,6 +1,8 @@
 #ifndef __SERVERHTTP2_H__
 #define __SERVERHTTP2_H__
 
+#include "ServerHttp2Protocol.h"
+
 namespace HttpServer
 {
 
