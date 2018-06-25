@@ -20,6 +20,7 @@ namespace HttpServer
 	//---------------------Main Func-------------------//
 	int Server::run()
 	{
+			std::cout<<"running..." << std::endl;
 			return 0;
 	}
 	void Server::stop()
@@ -147,15 +148,100 @@ namespace HttpServer
 
 	int Server::command_start(const int argc, const char*argv[])
 	{
-		struct server_start_args st = {};
+		std::cout<<"starting..." << std::endl;
 
+		struct server_start_args st = {};
+		//Check Start Command 
 		if(Server::get_start_args(argc,argv,&st) == false)
 		{
 			return 0x1;
 		}
+		//Change Current Directory
+		if(st.config_path.empty() == false )		
+		{
+			if(System::changeCurrentDirectory() == false)
+			{
+				std::cout << "Configuration path "<< st.config_path<<" not found ..." << std::endl;
+				return 0x2;
+			}
+		}	
 
-		std::cout<<"start"<<std::endl;
-		return 0;
+		//If force, destroy anything exists and start
+		if(st.force)
+		{
+			System::SharedMemory :: destroy (st.server_name);
+			System::GlobalMutex :: destroy (st.server_name); 
+		}
+		//Check is already on running
+		bool is_exists = false;
+
+		if(glob_mtx.open(st.server_name))
+		{
+			glob_mtx.lock();
+
+			if(glob_mem.open(st.server_name))
+			{
+				System::native_processid_type pid = 0;
+				if(glob_mem.read( &pid, sizeof(pid)))
+				{
+					is_exists = System::isProcessExists(pid);
+				}
+			}
+			glob_mtx.unlock();
+		}
+
+		if(is_exists) 
+		{
+			std::cout<< "Server Instance with name " << st.server_name << " Already running"<<std::endl;
+			return 0x3'
+		}
+		//Creating GlobalMutex
+		if(glob_mtx.open(st.server_name) == false)
+		{
+			if(glob_mtx.create(st.server_name) == false)
+			{
+				std::cout<<"Global mutex could not be created..."<<std::endl;
+				return 0x4;
+			}
+		}
+		//Creating SharedMemory
+		glob_mtx.lock();
+
+		if(glob_mem.open(std.server_name) == false)
+		{
+			if(glob_mem.create(st.server_name) == false)
+			{
+				glob_mtx.unlock();
+				std::cout<<"Shared memory could not be allocated..."<<std::endl;
+				return 0x5;
+			}
+		}
+		//Store PID at front of sharedMemory
+		System::native_processid_type pid = System::getProcessId();
+
+		if(glob_mem.write(&pid, sizeof(pid)) == false)
+		{
+			glob_mem.destroy();
+			glob_mtx.unlock();
+			std::cout<<"Writing data to shared memory failed..."<<std::endl;
+			return 0x6;
+		}
+		glob_mtx.unlock();
+		//Start running
+		int exitcode = EXIT_FAILTURE;
+
+		do{
+			this->controls.setProcess(false);
+			this->controls.setRestart(false);
+			
+			exitcode = this->run();
+		}
+		while(this->controls.process_flag || this->controls.restart_flag);
+		//Clear
+		glob_mem.destroy();
+		glob_mtx.destroy();
+
+		return exitcode;
 	}
 
 	int Server::command_restart(const int argc, const char*argv[]) const

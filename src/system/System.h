@@ -13,7 +13,12 @@ namespace System
 
 	bool sendSignal( const native_processid_type pid, const int signal) noexcept;
 
-	void filterSharedMemoryName( std::string &memName);
+	void filterSharedMemoryName( std::string &memName);	
+
+	bool changeCurrentDirectory(const std::string &dir);
+
+	bool isProcessExist(cost native_processid_type pid) noexcept;
+
 }
 
 
