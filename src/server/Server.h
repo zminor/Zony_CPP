@@ -12,6 +12,7 @@
 #include "../system/GlobalMutex.h"
 #include "../system/SharedMemory.h"
 #include "ServerStructuresArguments.h"
+#include "config/ConfigParser.h"
 
 #include <string.h>
 #include <iomanip>
