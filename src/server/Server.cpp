@@ -39,7 +39,20 @@ namespace HttpServer
 	}
 	bool Server::init()
 	{
-		return true;
+		ConfigParser conf_parser;
+		std::cout << "Initializing ..." << std::endl;
+		if (Socket::Socket::Startup() && conf_parser.loadConfig("main.conf", this->settings, this->modules) )
+		
+			this->settings.addDataVariant(new DataVariant::FormUrlencoded() );
+			this->settings.addDataVariant(new DataVariant::MultipartFormData() );
+			this->settings.addDataVariant(new DataVariant::TextPlain() );
+
+			::gnutls_global_init();
+			std::cout << "Initialization Succeeded..." << std::endl;
+			return true;
+		}
+		std::cout << "Initialization Failed..." << std::endl;
+		return false;
 	}
 	//------------------------Other-----------------------//
 	System::native_processid_type Server::getServerProcessId(const std::string &serverName)
@@ -56,7 +69,7 @@ namespace HttpServer
 
 			if(glob_mem.open(serverName))	//Set shm_desc with serverName
 			{
-				glob_mem.read(&pid, sizeof(pid)); //??? 
+				glob_mem.read(&pid, sizeof(pid)); //PID is written at front of Shared Memory 
 			}
 			glob_mtx.unlock();
 		}

@@ -24,6 +24,7 @@ namespace HttpServer
 		std::string &strBuf,
 		const std::size_t offset
 	) {
+		//Check if File Valid
 		std::ifstream file(fileName);
 
 		if ( ! file) {
@@ -32,21 +33,24 @@ namespace HttpServer
 			return false;
 		}
 
-		file.seekg(0, std::ifstream::end);
-		std::streamsize file_size = file.tellg();
+		//Check File Size
+		file.seekg(0, std::ifstream::end);				//Set Input File Stream Ptr to End of File
+		std::streamsize file_size = file.tellg();	//Get fileSize by returning End Ptr of File
 		file.seekg(0, std::ifstream::beg);
-
+		
 		constexpr std::streamsize file_size_max = FILESIZE;
-
-		if (file_size_max < file_size) {
+		if (file_size_max < file_size) 
+		{
 			file.close();
 			std::cout << "Error: file " << fileName << " is too large; max include file size = " << file_size_max << " bytes;" << std::endl;
 			return false;
 		}
 
-		if (file_size) {
+		//Read file data
+		if (file_size) 
+		{
 			std::vector<char> buf(file_size);
-			file.read(buf.data(), file_size);
+			file.read(buf.data(), file_size);	//Store File data into buf
 
 			strBuf.insert(
 				strBuf.begin() + long(offset),
@@ -518,14 +522,15 @@ namespace HttpServer
 	bool ConfigParser::loadConfig(
 		const std::string &conf_file_name,
 		ServerSettings &settings,
-		std::vector<System::Module> &modules
-	) {
+		std::vector<System::Module> &modules) 
+	{
 		std::string str_buf;
-
-		if (includeConfigFile(conf_file_name, str_buf) == false) {
+		//Read Config File and Store into str_buf
+		if (includeConfigFile(conf_file_name, str_buf) == false) 
+		{
 			return false;
 		}
-
+		//Variables Initialization
 		std::unordered_map<std::string, std::string> &global = settings.global;
 		std::unordered_map<std::string, std::string> &mimes_types = settings.mimes_types;
 		ServerApplicationsTree &apps_tree = settings.apps_tree;
@@ -539,7 +544,7 @@ namespace HttpServer
 		size_t block_pos = 0;
 
 		ConfigState state = ConfigState::NONE;
-
+		
 		while (std::string::npos != end_pos)
 		{
 			switch (state)
