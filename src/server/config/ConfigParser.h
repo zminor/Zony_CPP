@@ -3,8 +3,12 @@
 
 #include "../ServerSettings.h"
 #include "../../system/Module.h"
-#include <vector>
 #include "../ServerApplicationsTree.h"
+#include "../../utils/Utils.h"
+
+#include <iostream>
+#include <fstream>
+#include <vector>
 
 namespace HttpServer
 {
@@ -16,6 +20,7 @@ namespace HttpServer
 			ServerSettings &settings,
 			std::vector <System::Module> &modules
 		);
+
 	private:
 		struct ServerApplicationDefaultSettings
 		{
@@ -36,13 +41,14 @@ namespace HttpServer
 			ServerApplicationsTree & apps_tree
 		);
 
-		static bool parseName(
-			const std::string &fileName,
-			std::unordered_map <std::string , std::string> &mimes_types
-		);
+		static bool parseMimes(										
+										const std::string &fileName,
+										std::unordered_map<std::string, std::string> &mimes_types
+										);
+
 	};
 }
 #endif
 
 
-}
+

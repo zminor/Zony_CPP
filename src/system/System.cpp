@@ -44,4 +44,9 @@ namespace System{
 	{
 		return  0 == ::kill(pid,0);
 	}
+
+	std::string getTempDir()
+	{
+		return "";	
+	}
 }

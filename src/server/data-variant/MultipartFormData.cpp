@@ -1,8 +1,11 @@
+#include "../../utils/Utils.h"
 #include "MultipartFormData.h"
+
+#include <fstream>
 
 namespace DataVariant
 {
-	MultipartFormData::MultipartFormData()
+	MultipartFormData::MultipartFormData() noexcept
 	{
 		this->data_variant_name = "multipart/form-data";	
 	}

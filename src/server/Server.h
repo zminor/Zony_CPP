@@ -15,6 +15,7 @@
 #include "config/ConfigParser.h"
 #include "ServerControls.h"
 #include "../socket/Socket.h"
+#include "ServerSettings.h"
 
 #include <string.h>
 #include <iomanip>
@@ -40,7 +41,7 @@ namespace HttpServer
 	public:
 		mutable ServerControls controls;
 	protected:
-		
+		ServerSettings settings;		
 		bool tryBindPort(
 				const int port,
 				std::unordered_set<int> &ports

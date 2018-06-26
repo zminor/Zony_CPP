@@ -2,6 +2,7 @@
 #define __MULTIPARTFORMDATA_H__
 
 #include "Abstract.h"
+#include "../../utils/Utils.h"
 
 namespace DataVariant
 {

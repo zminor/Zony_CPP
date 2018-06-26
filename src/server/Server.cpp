@@ -2,6 +2,22 @@
 #include "ServerStructuresArguments.h"
 #include "../SignalHandler.h"
 
+#include "config/ConfigParser.h"
+#include "data-variant/FormUrlencoded.h"
+#include "data-variant/MultipartFormData.h"
+#include "data-variant/TextPlain.h"
+//#include "protocol/ServerHttp1.h"
+#include "protocol/ServerHttp2.h"
+#include "protocol/ServerHttp2Stream.h"
+
+#include "../socket/List.h"
+//#include "../socket/AdapterDefault.h"
+#include "../socket/AdapterTls.h"
+#include "../system/GlobalMutex.h"
+#include "../system/SharedMemory.h"
+#include "../system/System.h"
+#include "../utils/Utils.h"
+
 namespace HttpServer
 {
 
@@ -42,7 +58,7 @@ namespace HttpServer
 		ConfigParser conf_parser;
 		std::cout << "Initializing ..." << std::endl;
 		if (Socket::Socket::Startup() && conf_parser.loadConfig("main.conf", this->settings, this->modules) )
-		
+		{	
 			this->settings.addDataVariant(new DataVariant::FormUrlencoded() );
 			this->settings.addDataVariant(new DataVariant::MultipartFormData() );
 			this->settings.addDataVariant(new DataVariant::TextPlain() );
@@ -54,6 +70,7 @@ namespace HttpServer
 		std::cout << "Initialization Failed..." << std::endl;
 		return false;
 	}
+
 	//------------------------Other-----------------------//
 	System::native_processid_type Server::getServerProcessId(const std::string &serverName)
 	{

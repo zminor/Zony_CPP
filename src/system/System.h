@@ -19,6 +19,7 @@ namespace System
 
 	bool isProcessExist(const native_processid_type pid) noexcept;
 
+	std::string getTempDir();
 }
 
 

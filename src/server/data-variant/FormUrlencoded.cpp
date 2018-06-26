@@ -9,7 +9,7 @@ namespace DataVariant
 
 	bool FormUrlencoded :: parse(
 		const std::string &buf,
-		Transfer::request_data *rd.
+		Transfer::request_data *rd,
 		DataReceiver *dr) const 
 	{
 		if (buf.empty() ) 

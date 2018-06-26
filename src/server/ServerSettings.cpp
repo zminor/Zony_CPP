@@ -16,5 +16,9 @@ namespace HttpServer
 	}
 
 
+	void ServerSettings:: addDataVariant(DataVariant::Abstract *dataVariant)
+	{
+	
+	}
 
 }

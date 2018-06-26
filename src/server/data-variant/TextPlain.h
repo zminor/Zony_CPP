@@ -1,9 +1,11 @@
 #ifndef __TEXTPLAIN_H__
 #define __TEXTPLAIN_H__
 
+#include "Abstract.h"
+
 namespace DataVariant
 {
-	class TextPlain :: public Abstract
+	class TextPlain : public Abstract
 	{
 	public:
 		TextPlain() noexcept;

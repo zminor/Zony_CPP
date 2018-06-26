@@ -1,4 +1,6 @@
+
 #include "TextPlain.h"
+#include <iostream>
 
 namespace DataVariant
 {
@@ -7,13 +9,13 @@ namespace DataVariant
 		this->data_variant_name = "text/plain";
 	}
 
-	virtual bool DataVariant :: parse(
+	 bool TextPlain :: parse(
 		const std::string &buf,
 		Transfer::request_data *rd,
 		DataReceiver *dr
 	)const
 	{
-					if (buf.empty() ) {
+		if (buf.empty() ) {
 			return 0 == dr->full_size || dr->full_size != dr->recv_total;
 		}
 
@@ -21,7 +23,8 @@ namespace DataVariant
 			size_t var_pos = 0, var_end = 0;
 			std::string::npos != var_end;
 			var_pos = var_end + 1
-		) {
+		) 
+		{
 			//Search for Next Variable
 			var_end = buf.find('&', var_pos);
 
@@ -77,6 +80,5 @@ namespace DataVariant
 
 		return true;
 	}
-
-
 }
+
