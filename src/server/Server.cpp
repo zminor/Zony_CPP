@@ -32,13 +32,97 @@ namespace HttpServer
 
 	void Server::initAppsPorts()
 	{
+		//Applications settings list
+		std:: unordered_set <ServerApplicationSettings *> application;
+		
+		//Get Full Application setttings List
+		this->settings.apps_tree.collectApplicationSettings(application);
+		
+		//Bind Ports set
+		std::unordered_set <int> ports;
+		
+		//Open Application sockets
+		for(auto const &app: applications)
+		{
+			const std::unordered_set <int> &tls = app->tls_ports;i
+
+			if(tls.empty() == false)
+			{
+				std::tuple<gnutls_certificate_credentials, gnutls_priority_t> data;
+
+				if(tlsInit(*app, data))
+				{
+					for(const int port : tls)
+					{
+						if(this->tryBindPort(port, ports))
+						{
+							this->tls_data.emplace(port, data);
+						}
+					}
+				}
+
+			}
+			//Bind ports
+			const std::unordered_set <int> &port_list = app->ports;
+			for(const int port: port_list)
+			{
+				this->tryBindPort(port, ports);
+			}
+		}
+
 	}
+
 	//---------------------Main Func-------------------//
+
 	int Server::run()
 	{
+			if(this->init() == false)
+			{
+				return 0x10;
+			}
+
+			this->initAppsPorts();
+
+			if(this->listeners.empty())
+			{
+				std::cout<< "Error:any socket was not open" << std::endl;
+				this->clear();
+				return 0x20;
+			}
+
+			Socket::List sockets_list;
+			
+			sockets_list.create( this->listeners.size());
+
+			for(auto const &socket: this->listeners)
+			{
+				sockets_list.addSocket(sock);
+			}
+
+			std::cout << "Log: server started work" << std::endl;
+
+			constexpr size_t queue_msx_length = 1024;
+			this->controls.eventNotFullQueue = new Utils::Event(true, true);
+			this->controls.eventProcessQueue = new Utils::Event();
+			this->controls.eventUpdateModule = new Utils::Event(true, true);
+
+			SocketsQueue sockets;
+			
+			std::function <int(Server*, SocketsQueue&)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
+			std::thread threadQueue(serverCycleQueue,this, std::ref(sockets))
+
+			std::vector <Socket::Socket> accept_sockets;
+
+			do
+			{
+			
+			}
+			while();
+
 			std::cout<<"running..." << std::endl;
 			return 0;
 	}
+
 	void Server::stop()
 	{
 

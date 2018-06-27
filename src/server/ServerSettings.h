@@ -10,9 +10,9 @@ namespace HttpServer
 	class ServerSettings
 	{
 	public:
-			std::unordered_map<std::string, std::string> global;  //Global settings
-			std::unordered_map<std::string, DataVariant::Abstract *> variants;
-			std::unordered_map<std::string, std::string> mimes_types;
+			std::unordered_map<std::string, std::string> global;  							//Global settings
+			std::unordered_map<std::string, DataVariant::Abstract *> variants;	//Data
+			std::unordered_map<std::string, std::string> mimes_types;						//Mime types
 			ServerApplicationsTree apps_tree;
 	public:
 			ServerSettings() = default;
