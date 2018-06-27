@@ -1,6 +1,7 @@
 #include "Server.h"
 #include "ServerStructuresArguments.h"
 #include "../SignalHandler.h"
+#include "SocketsQueue.h"
 
 #include "config/ConfigParser.h"
 #include "data-variant/FormUrlencoded.h"
@@ -17,6 +18,7 @@
 #include "../system/SharedMemory.h"
 #include "../system/System.h"
 #include "../utils/Utils.h"
+#include <thread>
 
 namespace HttpServer
 {
@@ -33,10 +35,10 @@ namespace HttpServer
 	void Server::initAppsPorts()
 	{
 		//Applications settings list
-		std:: unordered_set <ServerApplicationSettings *> application;
+		std:: unordered_set <ServerApplicationSettings *> applications;
 		
 		//Get Full Application setttings List
-		this->settings.apps_tree.collectApplicationSettings(application);
+		this->settings.apps_tree.collectApplicationSettings(applications);
 		
 		//Bind Ports set
 		std::unordered_set <int> ports;
@@ -44,13 +46,13 @@ namespace HttpServer
 		//Open Application sockets
 		for(auto const &app: applications)
 		{
-			const std::unordered_set <int> &tls = app->tls_ports;i
+			const std::unordered_set <int> &tls = app->tls_ports;
 
 			if(tls.empty() == false)
 			{
 				std::tuple<gnutls_certificate_credentials, gnutls_priority_t> data;
 
-				if(tlsInit(*app, data))
+			/*	if(tlsInit(*app, data))
 				{
 					for(const int port : tls)
 					{
@@ -60,7 +62,7 @@ namespace HttpServer
 						}
 					}
 				}
-
+			*/
 			}
 			//Bind ports
 			const std::unordered_set <int> &port_list = app->ports;
@@ -94,14 +96,14 @@ namespace HttpServer
 			
 			sockets_list.create( this->listeners.size());
 
-			for(auto const &socket: this->listeners)
+			for(auto const &sock: this->listeners)
 			{
 				sockets_list.addSocket(sock);
 			}
 
 			std::cout << "Log: server started work" << std::endl;
 
-			constexpr size_t queue_msx_length = 1024;
+		//	constexpr size_t queue_msx_length = 1024;
 			this->controls.eventNotFullQueue = new Utils::Event(true, true);
 			this->controls.eventProcessQueue = new Utils::Event();
 			this->controls.eventUpdateModule = new Utils::Event(true, true);
@@ -109,7 +111,7 @@ namespace HttpServer
 			SocketsQueue sockets;
 			
 			std::function <int(Server*, SocketsQueue&)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
-			std::thread threadQueue(serverCycleQueue,this, std::ref(sockets))
+			std::thread threadQueue(serverCycleQueue,this, std::ref(sockets));
 
 			std::vector <Socket::Socket> accept_sockets;
 
@@ -117,11 +119,17 @@ namespace HttpServer
 			{
 			
 			}
-			while();
+			while(false);
 
 			std::cout<<"running..." << std::endl;
 			return 0;
 	}
+
+	int Server:: cycleQueue(SocketsQueue &sockets)
+	{
+		return ~0;	
+	}
+
 
 	void Server::stop()
 	{
@@ -137,6 +145,12 @@ namespace HttpServer
 	{
 
 	}
+
+	void Server:: clear()
+	{
+	
+	}
+
 	bool Server::init()
 	{
 		ConfigParser conf_parser;

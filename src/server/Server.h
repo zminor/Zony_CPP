@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
+#include "SocketsQueue.h"
 
 #include "../system/System.h"
 #include "../system/GlobalMutex.h"
@@ -38,9 +39,12 @@ namespace HttpServer
 		int command_restart(const int argc, const char*argv[]) const;
 		int command_terminate(const int argc, const char*argv[]) const;
 		int command_update_module(const int argc, const char*argv[]) const;
+
 	public:
 		mutable ServerControls controls;
+
 	protected:
+		int cycleQueue(SocketsQueue &sockets);
 		ServerSettings settings;		
 		bool tryBindPort(
 				const int port,
