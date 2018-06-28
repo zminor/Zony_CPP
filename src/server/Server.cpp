@@ -333,14 +333,27 @@ namespace HttpServer
 	}
 
 
+	static void close_listeners(std::vector<Socket::Socket> &listeners )
+	{
+		for(auto & sock: listeners)
+		{
+			sock.close();
+		}
+	}
+
 	void Server::stop()
 	{
-
+		this->controls.stopProcess();
+		close_listeners(this->listeners);
 	}	
 
 	void Server:: restart()
 	{
+		this->controls.setRestart();
+		this->controls.stopProcess();
 
+		close_listeners(this->listeners);
+		
 	}
 
 	void Server::update()
@@ -350,7 +363,34 @@ namespace HttpServer
 
 	void Server:: clear()
 	{
-	
+		this->controls.clear();
+
+		if (this->tls_data.empty() == false)
+		{
+			for (auto &pair : this->tls_data)
+			{
+				std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data = pair.second;
+				
+				::gnutls_certificate_free_credentials(std::get<gnutls_certificate_credentials_t>(data) );
+				::gnutls_priority_deinit(std::get<gnutls_priority_t>(data) );
+			}
+		}
+		
+		this->settings.clear();
+		
+		if (this->modules.empty() == false)
+		{
+			for (auto &module : this->modules)
+			{
+				module.close();
+			}
+			
+		this->modules.empty();
+		}
+		
+		::gnutls_global_deinit();
+
+		Socket::Socket::Cleanup();
 	}
 
 	bool Server::init()
