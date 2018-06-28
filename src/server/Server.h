@@ -43,9 +43,9 @@ namespace HttpServer
 	public:
 		mutable ServerControls controls;
 
-	protected:
+	protected:	
 		int cycleQueue(SocketsQueue &sockets);
-		ServerSettings settings;		
+
 		bool tryBindPort(
 				const int port,
 				std::unordered_set<int> &ports
@@ -66,6 +66,9 @@ namespace HttpServer
 				struct server_start_args*
 		);
 	protected:
+		ServerSettings settings;		
+		std::unordered_map<int, std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> > tls_data;
+
 		std::vector<Socket::Socket> listeners;
 		std::vector<System::Module> modules;
 		System::CachePadding<std::atomic_size_t> padding_1;

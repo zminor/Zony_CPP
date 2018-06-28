@@ -24,6 +24,153 @@ namespace HttpServer
 {
 
 	//---------------------Port------------------//
+	static bool tlsInit(
+			const ServerApplicationSettings &app,
+			std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> &data
+			)
+	{
+			::gnutls_certificate_credentials_t x509_cred;
+			
+			int ret = ::gnutls_certificate_allocate_credentials(&x509_cred);
+
+			if (ret < 0)
+			{
+				std::cout << "Error [tls]: certificate credentials has not been allocated; code: " << ret << std::endl;
+				return false;
+			}
+			
+			if (app.chain_file.empty() == false)
+			{
+				ret = ::gnutls_certificate_set_x509_trust_file(
+												x509_cred,
+												app.chain_file.c_str(),
+												GNUTLS_X509_FMT_PEM
+												);
+				
+				if (ret < 0) {
+					std::cout << "Warning [tls]: (CA) chain file has not been accepted; code: " << ret << std::endl;
+				}
+			}
+			
+			if (app.crl_file.empty() == false)
+			{
+				ret = ::gnutls_certificate_set_x509_crl_file(
+								x509_cred,
+								app.crl_file.c_str(),
+								GNUTLS_X509_FMT_PEM
+								);
+				
+				if (ret < 0)
+				{
+					std::cout << "Warning [tls]: (CLR) clr file has not been accepted; code: " << ret << std::endl;
+				}
+			}
+			
+			ret = ::gnutls_certificate_set_x509_key_file(
+								x509_cred,
+								app.cert_file.c_str(),
+								app.key_file.c_str(),
+								GNUTLS_X509_FMT_PEM
+								);
+			
+			if (ret < 0)
+			{
+				std::cout << "Error [tls]: (CERT) cert file or/and (KEY) key file has not been accepted; code: " << ret << std::endl;
+				return false;
+			}
+			
+			if (app.stapling_file.empty() == false)
+			{
+				ret = ::gnutls_certificate_set_ocsp_status_request_file(
+												x509_cred,
+												app.stapling_file.c_str(),
+												0
+												);
+				
+				if (ret < 0)
+				{
+					std::cout << "Warning [tls]: (OCSP) stapling file has not been accepted; code: " << ret << std::endl;
+				}
+			}
+			
+			::gnutls_dh_params_t dh_params;
+			
+			::gnutls_dh_params_init(&dh_params);
+			
+			if (app.dh_file.empty() )
+			{
+				const unsigned int bits = ::gnutls_sec_param_to_pk_bits(
+												GNUTLS_PK_DH, GNUTLS_SEC_PARAM_HIGH
+												);
+				
+				ret = ::gnutls_dh_params_generate2(
+												dh_params,
+												bits
+												);
+			}
+			else
+			{
+				std::ifstream dh_file(app.dh_file);
+				
+				if (dh_file)
+				{
+					const size_t max_file_size = 1024 * 1024;
+					
+					std::vector<char> buf(max_file_size);
+					
+					dh_file.read(
+													buf.data(),
+													std::streamsize(buf.size())
+													);
+					
+					gnutls_datum_t datum{
+							reinterpret_cast<unsigned char *>(buf.data() ),
+							static_cast<unsigned int>(dh_file.gcount() )
+					};
+
+					ret = ::gnutls_dh_params_import_pkcs3(
+													dh_params,
+													&datum,
+													GNUTLS_X509_FMT_PEM
+													);
+				}
+				else
+				{
+					ret = -1;
+					std::cout << "Error [tls]: DH params file has not been opened;" << std::endl;
+				}
+				
+				dh_file.close();
+			}
+			
+			if (ret < 0)
+			{
+				::gnutls_certificate_free_credentials(x509_cred);
+				std::cout << "Error [tls]: DH params were not loaded; code: " << ret << std::endl;
+				return false;
+			}
+			
+			::gnutls_certificate_set_dh_params(x509_cred, dh_params);
+			
+			::gnutls_priority_t priority_cache;
+			
+			ret = ::gnutls_priority_init(&priority_cache, "NORMAL", nullptr);
+			
+			if (ret < 0)
+			{
+				::gnutls_certificate_free_credentials(x509_cred);
+				std::cout << "Error [tls]: priority cache cannot be init; code: " << ret << std::endl;
+				return false;
+			}
+			
+			data = std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t>{
+								x509_cred,
+								priority_cache
+			};
+			
+			return true;
+	}
+
 	bool Server::tryBindPort(
 			const int port,
 			std::unordered_set <int> & ports
@@ -34,96 +181,151 @@ namespace HttpServer
 
 	void Server::initAppsPorts()
 	{
-		//Applications settings list
-		std:: unordered_set <ServerApplicationSettings *> applications;
-		
-		//Get Full Application setttings List
+		std::unordered_set<ServerApplicationSettings *> applications;
 		this->settings.apps_tree.collectApplicationSettings(applications);
 		
-		//Bind Ports set
-		std::unordered_set <int> ports;
+		std::unordered_set<int> ports;
 		
-		//Open Application sockets
-		for(auto const &app: applications)
+		for (auto const &app : applications)
 		{
-			const std::unordered_set <int> &tls = app->tls_ports;
-
-			if(tls.empty() == false)
+			const std::unordered_set<int> &tls = app->tls_ports;
+						
+			if (tls.empty() == false)
 			{
-				std::tuple<gnutls_certificate_credentials, gnutls_priority_t> data;
-
-			/*	if(tlsInit(*app, data))
+				std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> data;
+								
+				if (tlsInit(*app, data) )
 				{
-					for(const int port : tls)
+					for (const int port : tls)
 					{
-						if(this->tryBindPort(port, ports))
+						if (this->tryBindPort(port, ports) )
 						{
 							this->tls_data.emplace(port, data);
 						}
 					}
 				}
-			*/
 			}
-			//Bind ports
-			const std::unordered_set <int> &port_list = app->ports;
-			for(const int port: port_list)
+						
+			const std::unordered_set<int> &list = app->ports;
+						
+			for (const int port : list) 
 			{
 				this->tryBindPort(port, ports);
 			}
 		}
-
 	}
 
-	//---------------------Main Func-------------------//
-
+//--------------------Main Func-------------------//
 	int Server::run()
 	{
-			if(this->init() == false)
+		if (this->init() == false)
+		{
+			return 0x10;
+		}
+
+		this->initAppsPorts();
+		
+		if (this->listeners.empty() )
+		{
+			std::cout << "Error: any socket was not open;" << std::endl;
+			this->clear();
+			return 0x20;
+		}
+
+		Socket::List sockets_list;
+		
+		sockets_list.create(this->listeners.size() );
+		
+		for (auto const &sock : this->listeners) {
+			sockets_list.addSocket(sock);
+		}
+		
+		std::cout << "Log: server started work;" << std::endl << std::endl;
+		
+		constexpr size_t queue_max_length = 1024;
+		this->controls.eventNotFullQueue = new Utils::Event(true, true);
+		this->controls.eventProcessQueue = new Utils::Event();
+		this->controls.eventUpdateModule = new Utils::Event(false, true);
+		
+		SocketsQueue sockets;
+		
+		this->controls.setProcess();
+		
+		std::function<int(Server *, SocketsQueue &)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
+		std::thread threadQueue(serverCycleQueue, this, std::ref(sockets) );
+		
+		std::vector<Socket::Socket> accept_sockets;
+		
+		//Cycle for receiving new connections
+		do
+		{
+			if (sockets_list.accept(accept_sockets) )
 			{
-				return 0x10;
-			}
+				sockets.lock();
+					
+				for (size_t i = 0; i < accept_sockets.size(); ++i)
+				{
+					const Socket::Socket &sock = accept_sockets[i];
+					
+					if (sock.is_open() )
+					{
+						sock.nonblock(true);
+						
+						sock.tcp_nodelay(true);
+						
+						sockets.emplace(
+								std::tuple<Socket::Socket, Http2::IncStream *>
+								{
+										sock,
+										nullptr
+								}
+							);						
+						}
+					}
 
-			this->initAppsPorts();
-
-			if(this->listeners.empty())
+					sockets.unlock();
+				
+					this->controls.eventProcessQueue->notify();
+				
+					if (sockets.size() >= queue_max_length)
+					{
+						this->controls.eventNotFullQueue->reset();
+					}				
+					accept_sockets.clear();				
+					this->controls.eventNotFullQueue->wait();
+				}
+		}
+		while (this->controls.process_flag || this->controls.eventUpdateModule->notified() );
+		
+		this->controls.eventProcessQueue->notify();
+		
+		threadQueue.join();
+		
+		sockets_list.destroy();
+		
+		if (this->listeners.empty() == false)
+		{
+			for (Socket::Socket &sock : this->listeners)
 			{
-				std::cout<< "Error:any socket was not open" << std::endl;
-				this->clear();
-				return 0x20;
+				sock.close();
+				
 			}
-
-			Socket::List sockets_list;
 			
-			sockets_list.create( this->listeners.size());
-
-			for(auto const &sock: this->listeners)
-			{
-				sockets_list.addSocket(sock);
-			}
-
-			std::cout << "Log: server started work" << std::endl;
-
-		//	constexpr size_t queue_msx_length = 1024;
-			this->controls.eventNotFullQueue = new Utils::Event(true, true);
-			this->controls.eventProcessQueue = new Utils::Event();
-			this->controls.eventUpdateModule = new Utils::Event(true, true);
-
-			SocketsQueue sockets;
-			
-			std::function <int(Server*, SocketsQueue&)> serverCycleQueue = std::mem_fn(&Server::cycleQueue);
-			std::thread threadQueue(serverCycleQueue,this, std::ref(sockets));
-
-			std::vector <Socket::Socket> accept_sockets;
-
-			do
-			{
-			
-			}
-			while(false);
-
-			std::cout<<"running..." << std::endl;
-			return 0;
+			this->listeners.clear();
+		}
+		
+		this->clear();
+		
+		std::cout << "Log: server work completed;" << std::endl;
+		
+		return EXIT_SUCCESS;		
 	}
+
+	int cycleQueue(SocketsQueue &sockets)
+	{
+		return ~0;
+	}
+
 
 	int Server:: cycleQueue(SocketsQueue &sockets)
 	{
