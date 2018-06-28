@@ -46,6 +46,17 @@ namespace HttpServer
 	protected:	
 		int cycleQueue(SocketsQueue &sockets);
 
+		void threadRequestProc(
+										Socket::Adapter &sock,
+										SocketsQueue &sockets,
+										Http2::IncStream *stream
+										) const;
+
+		void threadRequestCycle(
+										SocketsQueue &sockets,
+										Utils::Event &eventThreadCycle
+										) const;
+
 		bool tryBindPort(
 				const int port,
 				std::unordered_set<int> &ports
@@ -59,6 +70,14 @@ namespace HttpServer
 
 		static System::native_processid_type getServerProcessId(const std::string &serverName);
 
+			void updateModules();
+
+			bool updateModule(
+					System::Module &module,
+					std::unordered_set<ServerApplicationSettings *> &applications,
+					const size_t moduleIndex
+					);
+
 	private:
 		static bool get_start_args(
 				const int,
@@ -69,6 +88,7 @@ namespace HttpServer
 		ServerSettings settings;		
 		std::unordered_map<int, std::tuple<gnutls_certificate_credentials_t, gnutls_priority_t> > tls_data;
 
+		std::atomic_size_t threads_working_count;
 		std::vector<Socket::Socket> listeners;
 		std::vector<System::Module> modules;
 		System::CachePadding<std::atomic_size_t> padding_1;

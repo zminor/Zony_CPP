@@ -321,17 +321,103 @@ namespace HttpServer
 		return EXIT_SUCCESS;		
 	}
 
-	int cycleQueue(SocketsQueue &sockets)
-	{
-		return ~0;
-	}
-
-
 	int Server:: cycleQueue(SocketsQueue &sockets)
 	{
+		//Setup Thread Count
+		auto const it_option = this->settings.global.find("thread_max_count ");
+		size_t thread_max_count = 0;
+
+		if(this->settings.global.cend() != it_option)
+		{
+			const std::string &option = it_option->second;
+			thread_max_count = std::strtoull(option.c_str(),nullptr,10);
+		}
+
+		if( 0 == thread_max_count)
+		{
+			//If 0,Get from hardware Info
+			thread_max_count = std::thread::hardware_concurrency();
+			//Still 0, Set max thread Count 1
+			if( 0 == thread_max_count)
+			{
+				thread_max_count = 1;
+			}
+
+			thread_max_count *= 2;
+		}
+		//Working Thread count Start with 0
+		this->threads_working_count = 0;
+		//
+		Utils::Event eventThreadCycle(false,true);
+
+		//Define Function Calling threadRequestCyle
+		std::function <void (
+				Server *, SocketsQueue&, Utils::Event &						
+		)> serverThreadRequestCycle = std::mem_fn( &Server :: threadRequestCycle);
+
+		std::vector<std::thread> active_threads;
+		active_threads.reserve(thread_max_count);
+
+		do
+		{
+			if(this->controls.eventUpdateModule -> notified())
+			{
+				updateModules();
+			}
+
+			//Cycle creation threads application requests
+			do{
+				while(
+					this->threads_working_count == active_threads.size()&&
+					active_threads.size()< thread_max_count &&
+					sockets.empty() == false )
+				{
+					active_threads.emplace_back(
+													serverThreadRequestCycle,
+													this,
+													std::ref(sockets),
+													std::ref(eventThreadCycle)
+													);
+				}
+				//activate working Threads
+				size_t notify_count = active_threads.size() - this->threads_working_count;
+				if(notify_count > sockets.size())
+				{
+					notify_count = sockets.size();
+				}
+
+				eventThreadCycle.notify(notify_count);
+				this->controls.eventProcessQueue->wait();
+			}
+			while(this->controls.process_flag);
+		}
+		while(this->controls.eventUpdateModule -> notified() );
+
 		return ~0;	
 	}
 
+
+	void Server::updateModules()
+	{
+	
+	}
+
+	bool Server::updateModule(
+									System::Module &module,
+									std::unordered_set<ServerApplicationSettings *> &applications,
+									const size_t moduleIndex
+									)
+	{
+		return false;	
+	}
+
+	void Server:: threadRequestCycle(
+										SocketsQueue &sockets,
+										Utils::Event &eventThreadCycle
+										) const
+		{
+		
+		}
 
 	static void close_listeners(std::vector<Socket::Socket> &listeners )
 	{
