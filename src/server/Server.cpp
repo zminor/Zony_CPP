@@ -216,6 +216,50 @@ namespace HttpServer
 	}
 
 //--------------------Main Func-------------------//
+
+	static std::unique_prt<ServerProtocol> getProtocolVariant(
+		Socket::Adapter &sock,
+		const ServerSettings &settings,
+		ServerControls &controls,
+		SocketQueue &sockets,
+		Http2::IncStream *stream)
+	{
+		std::unique_ptr<ServerProtocol> prot;
+		//If request is HTTP/2 Stream
+		if(stream)
+		{
+			prot.reset( new ServerHttp2Stream(sock,settings, controls,stream));
+			return prot;
+		}
+
+		if(sock.get_tls_session() != nullptr)
+		{
+			::gnutls_datum_t datum;
+
+			const int ret = ::gnutls_alpn_get_selected_protocol(sock.get_tls_session(),&datum);
+
+			if(GNUTLS_E_SUCCESS == ret)
+			{
+				const std::string protocol(reinterpret_cast<char*> (datum.data), datum.size);
+
+				if("h2" == protocol)
+				{
+					prot.reset(new ServerHttp2(sock,settings,controls,sockets));
+				}
+				else if("http/1.1" == protocol)
+				{
+					prot.reset(new ServerHttp1(sock,settings,controls));
+				}
+			}
+			else if(GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE == ret)
+			{
+				prot.reset(new ServerHttp1(sock, settings, controls));
+			}
+			return prot;
+		}
+	}
+
+
 	int Server::run()
 	{
 		if (this->init() == false)
@@ -390,10 +434,20 @@ namespace HttpServer
 				this->controls.eventProcessQueue->wait();
 			}
 			while(this->controls.process_flag);
+
+			if(active_threads.empty() == false)
+			{
+				for(auto &th : active_threads)
+				{
+					th.join();
+				}
+				active_threads.clear();
+			}
+			this->controls.eventNotFullQueue->notify();
 		}
 		while(this->controls.eventUpdateModule -> notified() );
 
-		return ~0;	
+		return 0;	
 	}
 
 
@@ -416,8 +470,125 @@ namespace HttpServer
 										Utils::Event &eventThreadCycle
 										) const
 		{
-		
+			while(true)
+			{
+				Socket::Socket sock;
+				Http2::IncStream * stream = nullptr;
+
+				eventThreadCycle.wait();
+
+				if(this->controls.process_flag == false)
+				{
+					break;
+				}
+
+				sockets.lock();
+
+				if(sockets.size())
+				{
+					std::tie(sock, stream) = sockets.front();
+
+					sockets.pop();
+				}
+
+				sockets.unlock();
+
+				if(sock.is_open())
+				{
+					++this->thread_working_count;
+
+					::sockaddr_in sock_addr{};
+					::socklen_t sock_addr_len = sizeof(sock_addr);
+
+					::getsockname(
+						sock.get_handle(),
+						reinterpret_cast <sockaddr *> (&sock_addr),
+						&sock_addr_len
+					);
+
+					const int port = ntohs(sock_addr.sin_port);
+
+					auto const it = this->tls_data.find(port);
+
+					if(this->tls_data.cend() != it)
+					{
+						if(stream)
+						{
+							Socket::AdapterTls sock_adapter(
+								reinterpret_cast <gnutls_session_t> (stream -> reserved)
+							);
+
+							this->threadRequestProc(
+								socket_adapter,
+								sockets,
+								stream
+							);
+						}
+						else 
+						{
+							const std::tuple <gnutls_certificate_credentials_t, gnutls_priority_t> &data = it->second;
+							Socket::AdapterTls socket_adapter(
+								sock,
+								std::get<gnutls_priority_t> (data),
+								std::get<gnutls_certificate_credentials_t>(data)
+							);
+
+							if(socket_adapter.handshake())
+							{
+								this->threadRequestProc(
+									socket_adapter,
+									sockets,
+									nullptr
+								);
+							}
+						}
+					}
+					else 
+					{
+						Socket::AdapterDefault socket_adapter(sock);
+
+						this->threadRequestProc(
+							socket_adapter,
+							sockets,
+							stream
+						);
+
+					}
+					-- this->threads_working_count;
+				}
+			}
 		}
+
+	void threadRequestProc(
+				Socket::Adapter &sock,
+				SocketsQueue &sockets,
+				Http2::IncStream *stream
+				)const
+	{
+		std::unique_ptr<ServerProtocol> prot = getProtocolVariant(
+			sock,
+			this->settings,
+			this->controls,
+			sockets,
+			stream
+		);
+
+		if(prot)
+		{
+			//Check if switching protocol
+			for(ServerProtocol *ret = nullptr; ;)
+			{
+				ret = prot -> process();
+
+				if(prot.get() == ret)
+				{
+					break;
+				}
+				prot.reset(ret);
+			}
+			prot->close();
+		}
+	}
 
 	static void close_listeners(std::vector<Socket::Socket> &listeners )
 	{
