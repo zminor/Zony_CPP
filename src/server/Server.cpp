@@ -7,12 +7,12 @@
 #include "data-variant/FormUrlencoded.h"
 #include "data-variant/MultipartFormData.h"
 #include "data-variant/TextPlain.h"
-//#include "protocol/ServerHttp1.h"
+#include "protocol/ServerHttp1.h"
 #include "protocol/ServerHttp2.h"
 #include "protocol/ServerHttp2Stream.h"
 
 #include "../socket/List.h"
-//#include "../socket/AdapterDefault.h"
+#include "../socket/AdapterDefault.h"
 #include "../socket/AdapterTls.h"
 #include "../system/GlobalMutex.h"
 #include "../system/SharedMemory.h"
@@ -217,11 +217,11 @@ namespace HttpServer
 
 //--------------------Main Func-------------------//
 
-	static std::unique_prt<ServerProtocol> getProtocolVariant(
+	static std::unique_ptr<ServerProtocol> getProtocolVariant(
 		Socket::Adapter &sock,
 		const ServerSettings &settings,
 		ServerControls &controls,
-		SocketQueue &sockets,
+		SocketsQueue &sockets,
 		Http2::IncStream *stream)
 	{
 		std::unique_ptr<ServerProtocol> prot;
@@ -255,8 +255,13 @@ namespace HttpServer
 			{
 				prot.reset(new ServerHttp1(sock, settings, controls));
 			}
+	
 			return prot;
 		}
+
+		prot.reset( new ServerHttp1(sock, settings, controls) );
+
+		return prot;
 	}
 
 
@@ -495,7 +500,7 @@ namespace HttpServer
 
 				if(sock.is_open())
 				{
-					++this->thread_working_count;
+					++this->threads_working_count;
 
 					::sockaddr_in sock_addr{};
 					::socklen_t sock_addr_len = sizeof(sock_addr);
@@ -514,7 +519,7 @@ namespace HttpServer
 					{
 						if(stream)
 						{
-							Socket::AdapterTls sock_adapter(
+							Socket::AdapterTls socket_adapter(
 								reinterpret_cast <gnutls_session_t> (stream -> reserved)
 							);
 
@@ -554,12 +559,12 @@ namespace HttpServer
 						);
 
 					}
-					-- this->threads_working_count;
+					--this->threads_working_count;
 				}
 			}
 		}
 
-	void threadRequestProc(
+	void Server:: threadRequestProc(
 				Socket::Adapter &sock,
 				SocketsQueue &sockets,
 				Http2::IncStream *stream

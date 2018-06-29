@@ -18,8 +18,8 @@ namespace HttpServer
 											Http2::IncStream *stream
 											) noexcept;
 
-			//virtual ServerProtocol *process() override;
-			//virtual void close() override;
+			virtual ServerProtocol *process() override;
+			virtual void close() override;
 			
 		};
 }
