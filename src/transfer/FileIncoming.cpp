@@ -57,7 +57,7 @@ namespace Transfer
 			return is_exists;
 	}
 }
-/*
+
 namespace Utils
 {
 	void packFilesIncoming(
@@ -102,7 +102,7 @@ namespace Utils
 					src = unpackString(file_type, src);
 
 					size_t file_size;
-																																							src = unpackNumber(&file_size, src);
+					src = unpackNumber(&file_size, src);
 					map.emplace(
 						std::move(key),
 						Transfer::FileIncoming(std::move(file_tmp_name),
@@ -115,4 +115,4 @@ namespace Utils
 						return src;
 			}
 }
-*/
+

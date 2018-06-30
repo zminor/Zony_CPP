@@ -228,8 +228,8 @@ namespace HttpServer
 		//If request is HTTP/2 Stream
 		if(stream)
 		{
-			prot.reset( new ServerHttp2Stream(sock,settings, controls,stream));
-			return prot;
+//			prot.reset( new ServerHttp2Stream(sock,settings, controls,stream));
+//			return prot;
 		}
 
 		if(sock.get_tls_session() != nullptr)
@@ -242,11 +242,12 @@ namespace HttpServer
 			{
 				const std::string protocol(reinterpret_cast<char*> (datum.data), datum.size);
 
-				if("h2" == protocol)
-				{
-					prot.reset(new ServerHttp2(sock,settings,controls,sockets));
-				}
-				else if("http/1.1" == protocol)
+//				if("h2" == protocol)
+//				{
+//					prot.reset(new ServerHttp2(sock,settings,controls,sockets));
+//				}
+//				else 
+				if("http/1.1" == protocol)
 				{
 					prot.reset(new ServerHttp1(sock,settings,controls));
 				}
@@ -819,7 +820,7 @@ namespace HttpServer
 				System::native_processid_type pid = 0;
 				if(glob_mem.read( &pid, sizeof(pid)))
 				{
-					is_exists = System::isProcessExist(pid);
+					is_exists = System::isProcessExists(pid);
 				}
 			}
 			glob_mtx.unlock();

@@ -187,9 +187,8 @@ namespace HttpServer
 
 		if (std::string::npos == uri_end) {
 			uri_end = str_end;
-			// this version protocol
- HTTP - 0.9
-		//	const std::string version = "0.9";
+			// this version protocol HTTP - 0.9
+			const std::string version = "0.9";
 		} else {
 			// if found 
 			str_buf[uri_end] = '\0';

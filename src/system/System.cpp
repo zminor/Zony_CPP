@@ -40,7 +40,7 @@ namespace System{
 		return  0 == ::chdir(dir.c_str() ) ;
 	}
 
-	bool isProcessExist(const native_processid_type pid) noexcept
+	bool isProcessExists(const native_processid_type pid) noexcept
 	{
 		return  0 == ::kill(pid,0);
 	}
@@ -48,5 +48,14 @@ namespace System{
 	std::string getTempDir()
 	{
 		return "";	
+	}
+
+	bool getFileSizeAndTimeGmt(
+									const std::string &filePath,
+									size_t *fileSize,
+									time_t *fileTime
+									)
+	{
+		return false;
 	}
 }
