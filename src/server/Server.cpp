@@ -494,35 +494,45 @@ namespace HttpServer
 		std::unordered_set <ServerApplicationSettings *> applications;
 		//Get Full application settings List
 		this->settings.apps_tree.collectApplicationSettings(applications);
-
+		//store all updated module Index into updated
 		std::unordered_set <size_t> updated;
-
+		//Loop through all applicationSettings
 		for(auto const &app : applications )
 		{
+			 //Each application is a module for the Server, each has a index
 			 const size_t module_index = app->module_index;
 			 //If module is not updated
 			 if(updated.cend() == updated.find(module_index))
 			 {
-			 		size_t module_size_new = 0;
-					time_t module_time_new = 0;
-
-					if(System::getFileSizeAndTimeGmt(app->server_module_update, &module_size_new,&module_time_new))
+					
+					if(app->server_module_update.empty() == false && app->server_module_update != app->server_module)
 					{
-						size_t module_size_cur =0;
-						time_t module_time_cur =0;
+			 				size_t module_size_new = 0;
+							time_t module_time_new = 0;
 
-						System::Module & module = this->modules[module_index];
-						if(System::getFileSizeAndTimeGmt(app->server_module,&module_size_cur,&module_time_cur))
+						if(System::getFileSizeAndTimeGmt(app->server_module_update, &module_size_new,&module_time_new))
 						{
-							if(module_size_cur != module_size_new || module_time_cur < module_time_new)
+							size_t module_size_cur =0;
+							time_t module_time_cur =0;
+
+							System::Module & module = this->modules[module_index];
+
+							if(System::getFileSizeAndTimeGmt(app->server_module,&module_size_cur,&module_time_cur))
 							{
-								this->updateModule(module,applications,module_index);
+								if(module_size_cur != module_size_new || module_time_cur < module_time_new)
+								{
+									this->updateModule(module,applications,module_index);
+								}
 							}
 						}
-					}
+				 }
+						updated.emplace(module_index);
 			 }
-			updated.emplace(module_index);
 		}
+
+		std::cout << "Notice : application modules have been updated.." << std::endl;
+		this->controls.setProcess();
+		this->controls.eventUpdateModule->reset();
 	}
 
 	bool Server::updateModule(
@@ -531,7 +541,160 @@ namespace HttpServer
 									const size_t moduleIndex
 									)
 	{
-		return false;	
+		std::unordered_set <ServerApplicationSettings *> same;
+
+		for(auto &app : applications)
+		{
+			if( app -> module_index == moduleIndex)
+			{
+				same.emplace (app);
+
+				try{
+					if(app->application_final)
+					{
+						const std::string root = app->root_dir;
+						app->application_final(root.data());
+					}
+				}
+				catch( std::exception &exc )
+				{
+					std::cout << "Warning: exception was thrown when application "<< app->server_module << "was finishes"<< exc.what() << std::endl;
+				}
+
+				//setup functions
+				app->application_call = std::function < int (Transfer::app_request *, Transfer::app_response *)> ();
+				app->application_clear = std::function <void (void *, size_t )>();
+				app->application_init  = std::function <bool (const char* )>();
+				app->application_final = std::function <void (const char* )>();
+			}
+		}
+
+		module.close();
+		auto const app = *(same.cbegin() );
+		const std::string &module_name = app->server_module;
+
+		//Hack for posix system -load new version shared library
+		const size_t dir_pos = module_name.rfind('/');
+		const size_t ext_pos = module_name.rfind('.');
+
+		std::string module_name_temp;
+
+		if(std::string::npos != ext_pos && (std::string ::npos == dir_pos|| dir_pos < ext_pos))
+		{
+			module_name_temp = module_name.substr(0,ext_pos)+ '-'+ Utils::getUniqueName()+ module_name.substr(ext_pos);
+		}
+		else 
+		{
+			module_name_temp = module_name + '-' + Utils::getUniqueName();
+		}
+		//Input File Stream
+		std::ifstream src(app->server_module_update, std::ifstream ::binary);
+
+		if(!src)
+		{
+			std::cout << "Error: file" << app->server_module_update<<" cannot be open ..."<<std::endl;
+			return false;
+		}
+		//Output File Stream
+		std::ofstream dst(module_name_temp, std::ofstream::binary | std::ofstream::trunc);
+
+		if(!dst)
+		{
+			std::cout<< "Error: file" <<module_name << "cannot be open..." << std::endl;
+			return false;
+		}
+
+		//Copy (rewrite) file
+		dst << src.rdbuf();
+
+		src.close();
+		dst.close();
+
+		//Open updated module
+		module.open(module_name_temp);
+		//Remove
+		if(std::remove(module_name.c_str()) != 0)
+		{
+			std::cout << "Error: file" << module_name << "could not be removed..." << std::endl;
+			return false;
+		}
+		//Rename 
+		if (std::rename(module_name_temp.c_str(), module_name.c_str() ) != 0)
+		{
+				std::cout << "Error: file '" << module_name_temp << "' could not be renamed;" << std::endl;
+				return false;
+		}
+		//Open Module
+		if (module.is_open() == false)
+		{
+				std::cout << "Error: the application module '" << module_name << "' can not be opened;" << std::endl;
+				return false;
+		}
+
+		void *(*addr)(void *) = nullptr;
+
+		//Application Call
+		if(module.find("application_call", &addr) == false)
+		{
+			std::cout << "Error: function 'application_call' was not found in the module"<< module_name <<"..."<<std::endl;
+			return false;
+		}
+		
+		std::function <int (
+										Transfer::app_request *,Transfer::app_response *
+										)> app_call = reinterpret_cast <int(*)(
+										Transfer::app_request *,Transfer::app_response *				
+										)> (addr);
+
+		if(!app_call)
+		{
+			std::cout << "Error: invalid function 'application_call' is in the module"<<module_name<<std::endl;
+			return false;
+		}
+		//Application_clear
+		if(module.find("application_clear", &addr) == false)
+		{
+			std::cout<< "Error: function 'application_clear' was not found int the module" << module_name<<std::endl;
+			return false;
+		}
+
+		std::function<void (void*, size_t)> app_clear = reinterpret_cast<void(*)(void *, size_t)>(addr);
+
+		//Application Init
+		std::function<bool(const char*)> app_init = std::function<bool(const char*)>();
+		if(module.find("application_init", &addr))
+		{
+			app_init = reinterpret_cast <bool (*)(const char *)>(addr);
+		}
+		
+		std::function<void (const char*)> app_final= std::function <void (const char*)>();
+		//Application Final
+		if(module.find("application_final", &addr))
+		{
+			app_final = reinterpret_cast <void (*)(const char *)>(addr);
+		}
+
+		for(auto &app : same)
+		{
+			app->application_call = app_call;
+			app->application_clear = app_clear;
+			app->application_init = app_init;
+			app->application_final = app_final;
+
+			try
+			{
+				if(app->application_init)
+				{
+					const std::string root = app->root_dir;
+					app->application_init(root.data() );
+				}
+			}
+			catch(std::exception &exc)
+			{
+				std::cout<< "Warning : an exception was thrown when the application"<<module_name<<std::endl;
+			}
+		}
+		return true;
 	}
 
 	void Server:: threadRequestCycle(
