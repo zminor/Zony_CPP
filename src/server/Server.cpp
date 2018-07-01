@@ -176,7 +176,38 @@ namespace HttpServer
 			std::unordered_set <int> & ports
 			)	
 	{
-		return false;	
+			if (ports.cend() != ports.find(port) )
+			{
+					return false;
+			}
+			
+			Socket::Socket sock;
+			
+			if (sock.open() == false)
+			{
+					std::cout << "Error: socket cannot be open; errno " << Socket::Socket::getLastError() << ";" << std::endl;
+					return false;
+			}
+			
+			if (sock.bind(port) == false)
+			{
+					std::cout << "Error: port " << port << " cannot be bind; errno " << Socket::Socket::getLastError() << ";" << std::endl;
+					return false;
+			}
+			
+			if (sock.listen() == false)
+			{
+					std::cout << "Error: socket " << port << " cannot be listen; errno " << Socket::Socket::getLastError() << ";" << std::endl;
+					return false;
+			}
+			
+			sock.nonblock(true);
+			
+			this->listeners.emplace_back(std::move(sock) );
+			
+			ports.emplace(port);
+			
+			return true;
 	}
 
 	void Server::initAppsPorts()
@@ -459,7 +490,39 @@ namespace HttpServer
 
 	void Server::updateModules()
 	{
-	
+		//Application settings List
+		std::unordered_set <ServerApplicationSettings *> applications;
+		//Get Full application settings List
+		this->settings.apps_tree.collectApplicationSettings(applications);
+
+		std::unordered_set <size_t> updated;
+
+		for(auto const &app : applications )
+		{
+			 const size_t module_index = app->module_index;
+			 //If module is not updated
+			 if(updated.cend() == updated.find(module_index))
+			 {
+			 		size_t module_size_new = 0;
+					time_t module_time_new = 0;
+
+					if(System::getFileSizeAndTimeGmt(app->server_module_update, &module_size_new,&module_time_new))
+					{
+						size_t module_size_cur =0;
+						time_t module_time_cur =0;
+
+						System::Module & module = this->modules[module_index];
+						if(System::getFileSizeAndTimeGmt(app->server_module,&module_size_cur,&module_time_cur))
+						{
+							if(module_size_cur != module_size_new || module_time_cur < module_time_new)
+							{
+								this->updateModule(module,applications,module_index);
+							}
+						}
+					}
+			 }
+			updated.emplace(module_index);
+		}
 	}
 
 	bool Server::updateModule(
