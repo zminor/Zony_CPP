@@ -847,7 +847,9 @@ namespace HttpServer
 
 	void Server::update()
 	{
-
+		this->controls.setUpdateModule();
+		this->controls.setProcess(false);
+		this->controls.setProcessQueue();
 	}
 
 	void Server:: clear()
